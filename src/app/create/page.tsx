@@ -1,6 +1,6 @@
 'use client'
 // pages/create.js
-import { useState } from 'react';
+import { useState, ChangeEvent, MouseEvent } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,7 @@ export default function CreateRoom() {
     { id: 'romantic', label: 'Romantic' },
   ];
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setRoomSettings({
       ...roomSettings,
@@ -35,7 +35,7 @@ export default function CreateRoom() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     // Here you would typically handle room creation
     console.log('Creating room with settings:', roomSettings);
@@ -107,13 +107,13 @@ export default function CreateRoom() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <form onSubmit={handleSubmit}>
+          <form>
             <div className="mb-6">
               <label htmlFor="maxPlayers" className="block text-gray-700 text-lg font-medium mb-2">Max Players</label>
               <select
                 id="maxPlayers"
                 name="maxPlayers"
-                value={roomSettings.maxPlayers}
+                defaultValue={roomSettings.maxPlayers}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
@@ -128,7 +128,7 @@ export default function CreateRoom() {
               <select
                 id="questionsPerRound"
                 name="questionsPerRound"
-                value={roomSettings.questionsPerRound}
+                defaultValue={roomSettings.questionsPerRound}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
@@ -143,7 +143,7 @@ export default function CreateRoom() {
               <select
                 id="timePerRound"
                 name="timePerRound"
-                value={roomSettings.timePerRound}
+                defaultValue={roomSettings.timePerRound}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
@@ -161,7 +161,7 @@ export default function CreateRoom() {
               <select
                 id="theme"
                 name="theme"
-                value={roomSettings.theme}
+                defaultValue={roomSettings.theme}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >

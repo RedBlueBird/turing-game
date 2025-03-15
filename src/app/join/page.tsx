@@ -239,7 +239,7 @@ export default function JoinRoom() {
                   ref={inputRefs.current[index]}
                   type="text"
                   maxLength={index === activeIndex ? 4 : 1}
-                  value={char}
+                  defaultValue={char}
                   onChange={index === activeIndex ? handleInputChange : undefined}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setActiveIndex(index)}
