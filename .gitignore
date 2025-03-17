@@ -42,3 +42,6 @@ next-env.d.ts
 
 .gitignore
 .vscode
+
+# ssl/DigiCertGlobalRootG2.crt.pem
+ssl

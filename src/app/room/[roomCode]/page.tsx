@@ -354,7 +354,6 @@ export default function RoomPage() {
                   text={playerInfo?.isHost ? "Delete Room" : "Leave"}
                   onClick={handleLeaveButtonClick}
                   variant="default"
-                  disabled={isLoading}
                 />
               </div>
             </main>
