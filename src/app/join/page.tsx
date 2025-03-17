@@ -6,12 +6,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+import ActionButton from '@/components/ActionButton';
 
 export default function JoinRoom() {
   const router = useRouter();
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [code, setCode] = useState<string[]>(['', '', '', '']);
   const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Create refs array with the correct type
   const inputRefs = useRef<Array<RefObject<HTMLInputElement> | null>>([]);
@@ -155,24 +158,85 @@ export default function JoinRoom() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     const roomCode = code.join('');
-    if (roomCode.length === 4) {
-      console.log('Joining room with code:', roomCode);
-      // Add a small delay to allow the exit animation to play
+    if (roomCode.length !== 4) {
+      setError('Please enter a complete 4-character room code');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Check if the player is already in a room
+      const storedPlayerInfo = localStorage.getItem('turingGame_player');
+      if (storedPlayerInfo) {
+        const currRoomCode = JSON.parse(storedPlayerInfo).roomCode;
+        if (currRoomCode != roomCode){
+          throw new Error("Player already in a room [" + JSON.parse(storedPlayerInfo).roomCode + "]");
+        } 
+        else {
+          router.push(`/room/${roomCode}`);
+          return;
+        }
+      }
+
+      // Check if the room exists and is available
+      const checkResponse = await fetch(`/api/rooms/${roomCode}`);
+      
+      if (!checkResponse.ok) {
+        const errorMessage = await checkResponse.json();
+        throw new Error(errorMessage.message);
+      }
+      
+      const roomData = await checkResponse.json();
+      
+      // If room exists, try to join
+      const joinResponse = await fetch('/api/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomCode
+        }),
+      });
+      
+      if (!joinResponse.ok) {
+        const errorData = await joinResponse.json();
+        throw new Error(errorData.message || 'Failed to join room');
+      }
+      
+      const joinData = await joinResponse.json();
+      
+      // Store player data in localStorage
+      localStorage.setItem('turingGame_player', JSON.stringify({
+        id: joinData.player.playerId,
+        name: joinData.player.playerName,
+        isHost: false,
+        roomId: joinData.room.roomId,
+        roomCode: joinData.room.roomCode
+      }));
+      
+      // Navigate to room
+      setIsUiVisible(false);
       setTimeout(() => {
         router.push(`/room/${roomCode}`);
       }, 200);
-    } else {
-      alert('Please enter a complete 4-character room code');
+    } catch (err) {
+      const errorMsg = "Failed to join room" + (err.message? (": " + err.message) : "");
+      // console.error(errorMsg);
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoBack = () => {
     setIsUiVisible(false);
-    // Add a small delay to allow the animation to play
     setTimeout(() => {
       router.push('/');
     }, 200);
@@ -225,6 +289,16 @@ export default function JoinRoom() {
           Join Room Code
         </h1>
 
+        {error && (
+          <motion.div 
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 w-full max-w-md"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
+
         <motion.div 
           className="bg-white rounded-lg shadow-md p-6 w-full max-w-md mb-6"
           initial={{ opacity: 0, y: 20 }}
@@ -239,8 +313,14 @@ export default function JoinRoom() {
                   ref={inputRefs.current[index]}
                   type="text"
                   maxLength={index === activeIndex ? 4 : 1}
-                  defaultValue={char}
-                  onChange={index === activeIndex ? handleInputChange : undefined}
+                  value={char || ''}
+                  onChange={(e) => {
+                    if (index === activeIndex) {
+                      handleInputChange(e);
+                    } else {
+                      setActiveIndex(index);
+                    }
+                  }}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setActiveIndex(index)}
                   onPaste={index === 0 ? handlePaste : undefined}
@@ -255,29 +335,23 @@ export default function JoinRoom() {
               ))}
             </div>
             
-            <motion.button 
-              type="submit"
-              className={`w-full py-4 px-8 rounded-lg text-2xl font-medium transition-colors
-              ${code.every(c => c !== '') 
-                ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-800' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+            <ActionButton 
+              text="Join Room"
+              onClick={() => {}} // Form will handle submission
+              variant="primary"
               disabled={!code.every(c => c !== '')}
-              whileHover={code.every(c => c !== '') ? { scale: 1.03 } : {}}
-              whileTap={code.every(c => c !== '') ? { scale: 0.97 } : {}}
-            >
-              Join Room
-            </motion.button>
+              type="submit"
+              className="py-4 text-2xl"
+            />
           </form>
         </motion.div>
 
-        <motion.button
+        <ActionButton
+          text="Back"
           onClick={handleGoBack}
-          className="flex items-center justify-center bg-gray-200 rounded-lg py-4 px-8 w-full max-w-md hover:bg-gray-300 transition-colors"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-        >
-          <span className="text-2xl font-medium text-gray-800">Back</span>
-        </motion.button>
+          variant="default"
+          className="py-4 text-2xl"
+        />
       </main>
     </motion.div>}
     </AnimatePresence>

@@ -6,15 +6,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+import ActionButton from '@/components/ActionButton'; // Import the ActionButton component
 
 export default function CreateRoom() {
   const router = useRouter();
   const [isUiVisible, setIsUiVisible] = useState(true);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [roomSettings, setRoomSettings] = useState({
     maxPlayers: 4,
     questionsPerRound: 3,
     timePerRound: 60,
+    timePerVote: 60,
     theme: 'general'
   });
 
@@ -30,24 +33,63 @@ export default function CreateRoom() {
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setRoomSettings({
-      ...roomSettings,
-      [name]: value
+      ...roomSettings
     });
   };
 
-  const handleSubmit = (e: MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically handle room creation
-    console.log('Creating room with settings:', roomSettings);
-    // For demo purposes, redirect to a hypothetical room page
-    setTimeout(() => {
-      router.push('/room/new-room-id');
-    }, 200);
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Check if the player is already in a room
+      const storedPlayerInfo = localStorage.getItem('turingGame_player');
+      if (storedPlayerInfo) {
+        throw new Error("Player already in a room [" + JSON.parse(storedPlayerInfo).roomCode + "]")
+      }
+
+      const response = await fetch('/api/rooms/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...roomSettings
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      // Store user data in localStorage for persistence
+      localStorage.setItem('turingGame_player', JSON.stringify({
+        id: data.player.playerId,
+        name: data.player.playerName,
+        isHost: true,
+        roomId: data.room.roomId,
+        roomCode: data.room.roomCode
+      }));
+
+      // Navigate to the room
+      setIsUiVisible(false);
+      setTimeout(() => {
+        router.push(`/room/${data.room.roomCode}`);
+      }, 200);
+    } catch (err) {
+      const errorMsg = "Failed to create room" + (err.message? (": " + err.message) : "");
+      // console.error(errorMsg);
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoBack = () => {
     setIsUiVisible(false);
-    // Add a small delay to allow the animation to play
     setTimeout(() => {
       router.push('/');
     }, 200);
@@ -101,6 +143,16 @@ export default function CreateRoom() {
           Create New Room
         </h1>
 
+        {error && (
+          <motion.div 
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 w-full max-w-md"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
+
         <motion.div 
           className="bg-white rounded-lg shadow-md p-6 w-full max-w-md mb-6"
           initial={{ opacity: 0, y: 20 }}
@@ -108,8 +160,8 @@ export default function CreateRoom() {
           transition={{ delay: 0.1 }}
         >
           <form>
-            <div className="mb-6">
-              <label htmlFor="maxPlayers" className="block text-gray-700 text-lg font-medium mb-2">Max Players</label>
+            <div className="mb-3">
+              <label htmlFor="maxPlayers" className="block text-gray-700 text-lg font-medium mb-1">Max Players</label>
               <select
                 id="maxPlayers"
                 name="maxPlayers"
@@ -123,8 +175,8 @@ export default function CreateRoom() {
               </select>
             </div>
 
-            <div className="mb-6">
-              <label htmlFor="questionsPerRound" className="block text-gray-700 text-lg font-medium mb-2">Questions/Round</label>
+            <div className="mb-3">
+              <label htmlFor="questionsPerRound" className="block text-gray-700 text-lg font-medium mb-1">Questions/Round</label>
               <select
                 id="questionsPerRound"
                 name="questionsPerRound"
@@ -138,8 +190,8 @@ export default function CreateRoom() {
               </select>
             </div>
 
-            <div className="mb-6">
-              <label htmlFor="timePerRound" className="block text-gray-700 text-lg font-medium mb-2">Time/Round</label>
+            <div className="mb-3">
+              <label htmlFor="timePerRound" className="block text-gray-700 text-lg font-medium mb-1">Time/Round</label>
               <select
                 id="timePerRound"
                 name="timePerRound"
@@ -156,8 +208,26 @@ export default function CreateRoom() {
               </select>
             </div>
 
-            <div className="mb-6">
-              <label htmlFor="theme" className="block text-gray-700 text-lg font-medium mb-2">Theme</label>
+            <div className="mb-3">
+              <label htmlFor="timePerVote" className="block text-gray-700 text-lg font-medium mb-1">Time/Vote</label>
+              <select
+                id="timePerVote"
+                name="timePerVote"
+                defaultValue={roomSettings.timePerVote}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              >
+                <option value="15">15 seconds</option>
+                <option value="30">30 seconds</option>
+                <option value="45">45 seconds</option>
+                <option value="60">60 seconds</option>
+                <option value="90">90 seconds</option>
+                <option value="120">120 seconds</option>
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="theme" className="block text-gray-700 text-lg font-medium mb-1">Theme</label>
               <select
                 id="theme"
                 name="theme"
@@ -176,23 +246,19 @@ export default function CreateRoom() {
         </motion.div>
 
         <div className="grid grid-cols-1 gap-4 w-full max-w-md">
-          <motion.button 
+          <ActionButton 
+            text="Create Room"
             onClick={handleSubmit}
-            className="flex items-center justify-center bg-yellow-400 rounded-lg py-4 px-8 hover:bg-yellow-500 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="text-2xl font-medium text-gray-800">Create Room</span>
-          </motion.button>
+            variant="primary"
+            disabled={isLoading}
+          />
           
-          <motion.button 
+          <ActionButton 
+            text="Go Back"
             onClick={handleGoBack}
-            className="flex items-center justify-center bg-gray-200 rounded-lg py-4 px-8 hover:bg-gray-300 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="text-2xl font-medium text-gray-800">Go Back</span>
-          </motion.button>
+            variant="default"
+            disabled={isLoading}
+          />
         </div>
       </main>
     </motion.div>}
