@@ -4,6 +4,8 @@ CREATE TABLE rooms (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   expired_at TIMESTAMP,
   room_state ENUM('waiting', 'in_progress', 'completed') DEFAULT 'waiting',
+  room_round INT DEFAULT 0,
+  round_start_time TIMESTAMP,
   room_code VARCHAR(4) NOT NULL,
   max_players INT NOT NULL,
   questions_per_round INT NOT NULL,
@@ -23,19 +25,30 @@ CREATE TABLE players (
   leave_time TIMESTAMP,
   is_ai BOOLEAN DEFAULT FALSE,
   is_lost BOOLEAN DEFAULT FALSE,
-  score INT DEFAULT 0,
+  votes INT DEFAULT 0,
+  voted_player_id INT DEFAULT 0,
   FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
 -- Questions table for storing questions by theme
 CREATE TABLE questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  room_id INT NOT NULL,
-  round INT NOT NULL,
   theme VARCHAR(50) NOT NULL,
   content VARCHAR(100) NOT NULL,
+  liked INT DEFAULT 0,
+  disliked INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Room questions to select questions in rooms
+CREATE TABLE room_questions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL,
+  room_round INT NOT NULL,
+  question_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+  FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 );
 
 -- Player answers for each question
@@ -45,6 +58,7 @@ CREATE TABLE player_answers (
   question_id INT NOT NULL,
   content VARCHAR(200) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  liked INT DEFAULT 0,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
   FOREIGN KEY (question_id) REFERENCES questions(id)
 );

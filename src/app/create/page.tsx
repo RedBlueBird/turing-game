@@ -1,19 +1,22 @@
 'use client'
-// pages/create.js
+// app/create/page.tsx
 import { useState, ChangeEvent, MouseEvent } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
-import ActionButton from '@/components/ActionButton'; // Import the ActionButton component
+
+import ActionButton from '@/components/ActionButton';
+import { pageTransitions } from '@/configs/animations';
+import { PlayerData, RoomSettings, StoredData } from '@/configs/interfaces';
 
 export default function CreateRoom() {
   const router = useRouter();
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [roomSettings, setRoomSettings] = useState({
+  const [roomSettings, setRoomSettings] = useState<RoomSettings>({
     maxPlayers: 4,
     questionsPerRound: 3,
     timePerRound: 60,
@@ -66,18 +69,19 @@ export default function CreateRoom() {
       }
 
       // Store user data in localStorage for persistence
-      localStorage.setItem('turingGame_player', JSON.stringify({
-        id: data.player.playerId,
-        name: data.player.playerName,
+      const storedData: StoredData = {
+        id: data.playerData.id,
+        realName: data.playerData.realName,
         isHost: true,
-        roomId: data.room.roomId,
-        roomCode: data.room.roomCode
-      }));
+        roomId: data.roomData.roomId,
+        roomCode: data.roomData.roomCode
+      }
+      localStorage.setItem('turingGame_player', JSON.stringify(storedData));
 
       // Navigate to the room
       setIsUiVisible(false);
       setTimeout(() => {
-        router.push(`/room/${data.room.roomCode}`);
+        router.push(`/room/${data.roomData.roomCode}`);
       }, 200);
     } catch (err) {
       const errorMsg = "Failed to create room" + (err.message? (": " + err.message) : "");
@@ -95,32 +99,6 @@ export default function CreateRoom() {
     }, 200);
   };
 
-  // Animation variants
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      x: 100,
-      scale: 0.95,
-    },
-    enter: {
-      opacity: 1,
-      x: 0,
-      scale: 1,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    },
-    exit: {
-      opacity: 0,
-      x: 100,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
     <AnimatePresence>
@@ -129,7 +107,7 @@ export default function CreateRoom() {
       initial="initial"
       animate="enter"
       exit="exit"
-      variants={pageVariants}
+      variants={pageTransitions}
       className="flex flex-col items-center justify-center min-h-screen bg-gray-100"
     >
       <Head>

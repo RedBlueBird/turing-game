@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import ActionButton from './ActionButton';
+import { backdropTransitions, popupTransitions } from '@/configs/animations';
 
 type ChangeLogItem = {
   version: string;
@@ -24,28 +25,6 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 }
-  };
-
-  const popupVariants = {
-    hidden: { 
-      opacity: 0,
-      scale: 0.8,
-      y: 20
-    },
-    visible: { 
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1]
-      }
-    }
-  };
-
   const handleBackdropClick = (e: React.MouseEvent) => {
     // Only close if clicking the backdrop itself, not its children
     if (e.target === e.currentTarget) {
@@ -56,14 +35,14 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
   return (
     <motion.div
       className="fixed inset-0 bg-gray-50/50 backdrop-blur-xs flex items-center justify-center z-50"
-      variants={backdropVariants}
+      variants={backdropTransitions}
       initial="hidden"
       animate="visible"
       onClick={handleBackdropClick}
     >
       <motion.div
         className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] flex flex-col"
-        variants={popupVariants}
+        variants={popupTransitions}
         initial="hidden"
         animate="visible"
         onClick={e => e.stopPropagation()}

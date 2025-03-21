@@ -1,22 +1,22 @@
 'use client'
-// pages/index.js
-import { useState, useEffect } from 'react';
+// app/page.tsx
+import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+
+import { pageTransitions } from '@/configs/animations';
 import ChangeLogPopup from '@/components/ChangeLogPopup';
 import ActionButton from '@/components/ActionButton';
 import changeLogData from '@/data/changelog.json';
 
 export default function Home() {
   const router = useRouter();
-  const [exitDirection, setExitDirection] = useState('left');
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [showChangeLog, setShowChangeLog] = useState(false);
 
   const handleCreate = () => {
-    setExitDirection('right');
     setIsUiVisible(false);
     setTimeout(() => {
       router.push('/create');
@@ -24,7 +24,6 @@ export default function Home() {
   };
   
   const handleJoin = () => {
-    setExitDirection('left');
     setIsUiVisible(false);
     setTimeout(() => {
       router.push('/join');
@@ -44,35 +43,8 @@ export default function Home() {
     console.log('How to play clicked');
   };
 
-  // Animation variants
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      x: -100,
-      scale: 0.95,
-    },
-    enter: {
-      opacity: 1,
-      x: 0,
-      scale: 1,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    },
-    exit: {
-      opacity: 0,
-      x: exitDirection === 'left' ? -100 : 100,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      {/* Change Log Popup */}
       <ChangeLogPopup 
         isOpen={showChangeLog} 
         onClose={handleCloseChangeLog} 
@@ -85,7 +57,7 @@ export default function Home() {
           initial="initial"
           animate="enter"
           exit="exit"
-          variants={pageVariants}
+          variants={pageTransitions}
         >
           <Head>
             <title>Turing Game</title>

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import pool from '../../db';
 import { v4 as uuidv4 } from 'uuid';
 import { ResultSetHeader } from 'mysql2';
+import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
 
 export async function POST(request: Request) {
   try {
@@ -44,25 +45,37 @@ export async function POST(request: Request) {
       'INSERT INTO players (room_id, real_name, leave_time) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
       [room.id, playerName]
     ) as [ResultSetHeader, any];
-    const playerId = insertPlayerResult.insertId;
+    
+
+    const playerData: PlayerData = {
+      id: insertPlayerResult.insertId,
+      realName: playerName,
+      score: 0,
+      isLost: false,
+    }
+    const roomSettings : RoomSettings = {
+      maxPlayers: room.max_players,
+      questionsPerRound: room.questions_per_round,
+      timePerRound: room.time_per_round,
+      timePerVote: room.time_per_vote,
+      theme: room.theme,
+    }
+    const roomData: RoomData = {
+      roomId: room.id,
+      roomCode: roomCode,
+      roomState: room.room_state,
+      hostId: room.host_id,
+      settings: roomSettings,
+      roomRound: room.room_round, 
+      roundStartTime: room.round_start_time,
+      createdAt: room.created_at,
+      expiresAt: room.expired_at
+    }
 
     // Return room info and player ID
     return NextResponse.json({
-      player: {
-        playerId,
-        playerName
-      },
-      room: {
-        roomCode: roomCode,
-        roomId: room.id,
-        roomState: room.room_state,
-        maxPlayers: room.max_players,
-        questionsPerRound: room.questions_per_round,
-        timePerRound: room.time_per_round,
-        timePerVote: room.time_per_vote,
-        theme: room.theme,
-        hostId: room.host_id
-      }
+      playerData: playerData,
+      roomData: roomData
     }, { status: 201 });
   } catch (error) {
     console.error('Error joining room:', error);

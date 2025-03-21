@@ -15,7 +15,8 @@ const pool = mysql.createPool({
     // ca: serverCa,
     // minVersion: 'TLSv1.2',
     // maxVersion: 'TLSv1.3'
-  }
+  },
+  timezone: 'Z',
 });
 
 export default pool;

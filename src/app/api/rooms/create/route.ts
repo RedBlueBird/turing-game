@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import pool from '../../db';
 import { v4 as uuidv4 } from 'uuid';
 import { ResultSetHeader } from 'mysql2';
+import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
 
 // Function to generate a random 4-character room code
 function generateRoomCode(): string {
@@ -63,23 +64,33 @@ export async function POST(request: Request) {
       [hostId, roomId]
     );
 
+
+    const playerData: PlayerData = {
+      id: insertPlayerResult.insertId,
+      realName: hostName,
+      score: 0,
+      isLost: false,
+    }
+    const roomSettings : RoomSettings = {
+      maxPlayers: maxPlayers,
+      questionsPerRound: questionsPerRound,
+      timePerRound: timePerRound,
+      timePerVote: timePerVote,
+      theme: theme,
+    }
+    const roomData: RoomData = {
+      roomId: roomId,
+      roomCode: roomCode,
+      roomState: 'waiting',
+      hostId: hostId,
+      settings: roomSettings,
+      roomRound: 0, 
+    }
+
     // Return the room code and host ID
     return NextResponse.json({
-      player: {
-        playerId: hostId,
-        playerName: hostName
-      },
-      room: {
-        roomCode: roomCode,
-        roomId: roomId,
-        roomState: 'waiting',
-        maxPlayers: maxPlayers,
-        questionsPerRound: questionsPerRound,
-        timePerRound: timePerRound,
-        timePerVote: timePerVote,
-        theme: theme,
-        hostId: hostId
-      }
+      playerData: playerData,
+      roomData: roomData
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating room:', error);

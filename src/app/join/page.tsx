@@ -1,12 +1,15 @@
 'use client'
-// pages/join.tsx
+// app/join/page.tsx
 import { useState, useRef, createRef, RefObject, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+
 import ActionButton from '@/components/ActionButton';
+import { pageTransitions } from '@/configs/animations';
+import { StoredData } from '@/configs/interfaces';
 
 export default function JoinRoom() {
   const router = useRouter();
@@ -213,13 +216,14 @@ export default function JoinRoom() {
       const joinData = await joinResponse.json();
       
       // Store player data in localStorage
-      localStorage.setItem('turingGame_player', JSON.stringify({
-        id: joinData.player.playerId,
-        name: joinData.player.playerName,
+      const storedData: StoredData = {
+        id: joinData.playerData.id,
+        realName: joinData.playerData.realName,
         isHost: false,
-        roomId: joinData.room.roomId,
-        roomCode: joinData.room.roomCode
-      }));
+        roomId: joinData.roomData.roomId,
+        roomCode: joinData.roomData.roomCode
+      };
+      localStorage.setItem('turingGame_player', JSON.stringify(storedData));
       
       // Navigate to room
       setIsUiVisible(false);
@@ -242,32 +246,6 @@ export default function JoinRoom() {
     }, 200);
   };
 
-  // Animation variants
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      x: 100,
-      scale: 0.95,
-    },
-    enter: {
-      opacity: 1,
-      x: 0,
-      scale: 1,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    },
-    exit: {
-      opacity: 0,
-      x: 100,
-      transition: {
-        duration: 0.2,
-        ease: [0.61, 1, 0.88, 1],
-      }
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
     <AnimatePresence>
@@ -276,7 +254,7 @@ export default function JoinRoom() {
       initial="initial"
       animate="enter"
       exit="exit"
-      variants={pageVariants}
+      variants={pageTransitions}
     >
       <Head>
         <title>Join Room | Turing Game</title>
