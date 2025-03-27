@@ -1,4 +1,4 @@
-// app/api/db.ts - Database connection utility
+// lib/db.ts - Database connection utility
 import mysql from 'mysql2/promise';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,4 +19,4 @@ const pool = mysql.createPool({
   timezone: 'Z',
 });
 
-export default pool;
+export default pool; 

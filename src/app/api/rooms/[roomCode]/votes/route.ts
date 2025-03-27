@@ -1,6 +1,6 @@
 // app/api/rooms/[roomCode]/votes/route.ts
 import { NextResponse } from 'next/server';
-import pool from '../../../db';
+import pool from '@/lib/db';
 
 // GET endpoint to fetch votes for a round
 export async function GET(
@@ -40,7 +40,7 @@ export async function GET(
     // If round is complete, determine players with highest votes
     let votedPlayers = [];
     let eliminatedPlayer;
-    if (roundComplete) {
+    if (roundComplete && room.has_eliminated === 0) {
       // Get vote counts for each player
       const [voteCounts]: any = await pool.query(
         `SELECT id, votes 
@@ -64,6 +64,10 @@ export async function GET(
         await pool.query(
           'UPDATE players SET is_lost = 1 WHERE id IN (?) AND is_lost = 0',
           [eliminatedPlayer]
+        );
+        await pool.query(
+          'UPDATE rooms SET has_eliminated = 1 WHERE id = ?',
+          [room.id]
         );
       }
     }
@@ -115,19 +119,31 @@ export async function POST(
       return NextResponse.json({ message: 'You have already voted in this round' }, { status: 400 });
     }
 
-    // Update player's voted_player_id to record their vote
-    await pool.query(
-      'UPDATE players SET voted_player_id = ? WHERE id = ?',
-      [votedPlayerId, playerId]
-    );
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    // Increment vote count for the voted player
-    await pool.query(
-      'UPDATE players SET votes = votes + 1 WHERE id = ?',
-      [votedPlayerId]
-    );
+    try {
+        // Update player's voted_player_id to record their vote
+        await connection.query(
+            'UPDATE players SET voted_player_id = ? WHERE id = ?',
+            [votedPlayerId, playerId]
+        );
 
-    return NextResponse.json({ message: 'Vote recorded successfully' }, { status: 201 });
+        // Increment vote count for the voted player
+        await connection.query(
+            'UPDATE players SET votes = votes + 1 WHERE id = ?',
+            [votedPlayerId]
+        );
+
+        await connection.commit();
+        return NextResponse.json({ message: 'Vote submitted successfully' }, { status: 200 });
+
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
   } catch (error) {
     console.error('Error submitting vote:', error);
     return NextResponse.json({ message: 'Error submitting vote' }, { status: 500 });

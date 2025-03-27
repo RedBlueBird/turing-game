@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import ActionButton from '@/components/ActionButton';
 import { pageTransitions, containerTransitions,  itemTransitions} from '@/configs/animations';
 import { PlayerData, RoomData } from '@/configs/interfaces';
+import { ErrorMessage } from '@/components/ErrorMessage';
 
 interface WaitingInterfaceProps {
   error: string;
   roomData: RoomData;
   playerData: PlayerData;
   canStartGame: boolean;
+  isStartingGame: boolean;
   handleOpenConfirmationPopup: (e:any) => void;
   handleStartGame: (e:any) => void;
 }
@@ -19,6 +21,7 @@ export default function WaitingInterface({
   roomData,
   playerData,
   canStartGame,
+  isStartingGame,
   handleOpenConfirmationPopup,
   handleStartGame,
 }: WaitingInterfaceProps) {
@@ -45,15 +48,7 @@ export default function WaitingInterface({
           </div>
         </div>
         
-        {error && (
-          <motion.div 
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 w-full max-w-md"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {error}
-          </motion.div>
-        )}
+        <ErrorMessage message={error} />
 
         <motion.div 
           className="bg-white rounded-lg shadow-md p-6 w-full max-w-md mb-6"
@@ -103,13 +98,22 @@ export default function WaitingInterface({
 
         <div className="grid grid-cols-1 gap-4 w-full max-w-md">
           {(playerData?.id === roomData?.hostId) ? (
-            <ActionButton 
-              text="Start Game"
-              onClick={handleStartGame}
-              variant={canStartGame ? "primary" : "disabled"}
-              disabled={!canStartGame}
-              customDisabledText="Need at least 2 players"
-            />
+            isStartingGame ? (
+              <ActionButton 
+                text="Start Game"
+                onClick={() => {}}
+                variant="disabled"
+                disabled={true}
+              />
+            ) : (
+              <ActionButton 
+                text="Start Game"
+                onClick={handleStartGame}
+                variant={canStartGame ? "primary" : "disabled"}
+                disabled={!canStartGame}
+                customDisabledText="Need at least 2 players"
+              />
+            )
           ) : (
             <div className="flex items-center justify-center bg-gray-300 rounded-lg py-4 px-8">
               <span className="text-2xl font-medium text-gray-600">Waiting for host to start...</span>
@@ -120,6 +124,7 @@ export default function WaitingInterface({
             text={(playerData?.id === roomData?.hostId) ? "Delete Room" : "Leave"}
             onClick={handleOpenConfirmationPopup}
             variant="default"
+            disabled={isStartingGame}
           />
         </div>
       </main>

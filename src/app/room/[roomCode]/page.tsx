@@ -8,6 +8,8 @@ import WaitingInterface from './WaitingInterface';
 import { InterfaceState, PlayerData, RoomData } from '@/configs/interfaces';
 import QuestionInterface from './QuestionInterface';
 import VotingInterface from './VotingInterface';
+import gameoverMessages from '@/data/gameover-message.json';
+import ActionButton from '@/components/ActionButton';
 
 export default function RoomPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function RoomPage() {
   
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStartingGame, setIsStartingGame] = useState(false);
   const [interfaceState, setInterfaceState] = useState<InterfaceState>(InterfaceState.Waiting);
   const [error, setError] = useState('');
   const [roomData, setRoomData] = useState<RoomData | null>(null);
@@ -23,9 +26,9 @@ export default function RoomPage() {
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [gameResults, setGameResults] = useState<{ 
-    aiEliminated: boolean, 
-    humanWinner: boolean 
+    aiEliminated: boolean
   } | null>(null);
+  const [gameOverMessage, setGameOverMessage] = useState<string>('');
 
   useEffect(() => {
     // Load player info from localStorage
@@ -40,7 +43,7 @@ export default function RoomPage() {
         router.push('/');
         return;
       }
-    } else {
+    } else if (!gameComplete) {
       // Redirect if no player info found
       router.push('/');
       return;
@@ -51,8 +54,21 @@ export default function RoomPage() {
       try {
         setIsLoading(true);
 
-        const response = await fetch(`/api/rooms/${roomCode}`);
-        
+        const params = new URLSearchParams();
+        if (interfaceState === InterfaceState.Voting) {
+          params.set('includeAI', 'true');
+        }
+        if (interfaceState === InterfaceState.Waiting) {
+          params.set('nameType', 'real');
+        }
+        const url = `/api/rooms/${roomCode}${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
         if (!response.ok) {
           throw new Error('Failed to load room information');
         }
@@ -60,11 +76,19 @@ export default function RoomPage() {
         const roomData = await response.json();
         setRoomData(roomData);
         
+        // Handle game completion state
+        if (roomData.roomState === 'completed') {
+          setGameComplete(true);
+          setGameResults({
+            aiEliminated: roomData.aiEliminated
+          });
+          localStorage.removeItem('turingGame_player');
+          return;
+        }
+        
         // Determine the interface state based on room state
         if (roomData.roomState === 'waiting') {
           setInterfaceState(InterfaceState.Waiting);
-        } else if (roomData.roomState === 'completed') {
-          setGameComplete(true);
         } else {
           // Check if it's question time or voting time based on the round start time
           if (roomData.roundStartTime) {
@@ -89,20 +113,31 @@ export default function RoomPage() {
       }
     };
 
-    fetchRoomData();
-    
-    // Set up polling to refresh room data
-    const intervalId = setInterval(fetchRoomData, 3000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [roomCode, router]);
+    // Only set up polling if game is not complete
+    if (!gameComplete) {
+      fetchRoomData();
+      const intervalId = setInterval(fetchRoomData, 3000);
+      return () => clearInterval(intervalId);
+    }
+  }, [roomCode, router, interfaceState, gameComplete]);
+
+  // Set the game over message based on the game results
+  useEffect(() => {
+    if (gameComplete) {
+      setGameOverMessage(
+        gameResults?.aiEliminated 
+          ? gameoverMessages.human[Math.floor(Math.random() * gameoverMessages.human.length)]
+          : gameoverMessages.ai[Math.floor(Math.random() * gameoverMessages.ai.length)] 
+      );
+    }
+  }, [gameResults, gameComplete]);
 
   const handleStartGame = async () => {
     if (!(playerData?.id === roomData?.hostId)) return;
     
     try {
       setIsLoading(true);
+      setIsStartingGame(true);
       const response = await fetch(`/api/rooms/${roomCode}/start`, {
         method: 'POST',
         headers: {
@@ -124,6 +159,7 @@ export default function RoomPage() {
       const errorMsg = "Failed to start game" + (err.message? (": " + err.message) : "");
       // console.error(errorMsg);
       setError(errorMsg);
+      setIsStartingGame(false);
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +216,7 @@ export default function RoomPage() {
 
       // Allow non-host player to be able to leave the room anyway
       if (playerData?.id !== roomData?.hostId){
+        localStorage.removeItem('turingGame_player');
         setIsUiVisible(false);
         setTimeout(() => {
           router.push('/');
@@ -259,18 +296,8 @@ export default function RoomPage() {
         throw new Error(errorData.message || 'Failed to start next round');
       }
       
-      const data = await response.json();
-      
-      if (data.gameComplete) {
-        setGameComplete(true);
-        setGameResults({
-          aiEliminated: data.aiEliminated,
-          humanWinner: data.humanWinner
-        });
-      } else {
-        // Next round started successfully, switch to question interface
-        setInterfaceState(InterfaceState.Question);
-      }
+      // Next round started successfully, switch to question interface
+      setInterfaceState(InterfaceState.Question);
     } catch (err) {
       const errorMsg = "Failed to start next round" + (err.message? (": " + err.message) : "");
       setError(errorMsg);
@@ -302,21 +329,26 @@ export default function RoomPage() {
           {gameResults?.aiEliminated ? (
             <div>
               <div className="text-2xl mb-4 text-green-600 font-semibold">Humans Win!</div>
-              <p className="text-lg mb-6">The AI player was successfully identified and eliminated.</p>
+              <p className="text-lg mb-6">
+                The AI player was successfully identified and eliminated. {" "}
+                {gameOverMessage}
+              </p>
             </div>
           ) : (
             <div>
               <div className="text-2xl mb-4 text-red-600 font-semibold">AI Wins!</div>
-              <p className="text-lg mb-6">Only one human player remains. The AI has successfully infiltrated.</p>
+              <p className="text-lg mb-6">
+                Only one human player remains. {" "}
+                {gameOverMessage}
+              </p>
             </div>
           )}
           
-          <button
+          <ActionButton
+            text="Return to Home"
             onClick={() => router.push('/')}
-            className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
-          >
-            Return to Home
-          </button>
+            variant="primary"
+          />
         </div>
       </div>
     );
@@ -340,6 +372,7 @@ export default function RoomPage() {
             roomData={roomData} 
             playerData={playerData} 
             canStartGame={canStartGame} 
+            isStartingGame={isStartingGame}
             handleOpenConfirmationPopup={handleOpenConfirmationPopup}
             handleStartGame={handleStartGame}
           />

@@ -1,6 +1,6 @@
 // app/api/rooms/join/route.ts - Join an existing room
 import { NextResponse } from 'next/server';
-import pool from '../../db';
+import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { ResultSetHeader } from 'mysql2';
 import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     // Check if room is full
     const [playerRows]: any = await pool.query(
-      'SELECT COUNT(*) as playerCount FROM players WHERE room_id = ? AND leave_time > NOW()',
+      'SELECT COUNT(*) as playerCount FROM players WHERE room_id = ? AND leave_time > NOW() AND is_ai = 0',
       [room.id]
     );
 
@@ -37,46 +37,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Room is full' }, { status: 400 });
     }
 
-    // Generate player nickname
-    const playerName = "Player " + String(playerRows[0].playerCount+1);
+    // Begin transaction with connection
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    // Add player to the room
-    const [insertPlayerResult] = await pool.query(
-      'INSERT INTO players (room_id, real_name, leave_time) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
-      [room.id, playerName]
-    ) as [ResultSetHeader, any];
-    
+    try {
+      // Generate player nickname
+      const playerName = "Player " + String(playerRows[0].playerCount+1);
 
-    const playerData: PlayerData = {
-      id: insertPlayerResult.insertId,
-      realName: playerName,
-      score: 0,
-      isLost: false,
-    }
-    const roomSettings : RoomSettings = {
-      maxPlayers: room.max_players,
-      questionsPerRound: room.questions_per_round,
-      timePerRound: room.time_per_round,
-      timePerVote: room.time_per_vote,
-      theme: room.theme,
-    }
-    const roomData: RoomData = {
-      roomId: room.id,
-      roomCode: roomCode,
-      roomState: room.room_state,
-      hostId: room.host_id,
-      settings: roomSettings,
-      roomRound: room.room_round, 
-      roundStartTime: room.round_start_time,
-      createdAt: room.created_at,
-      expiresAt: room.expired_at
-    }
+      // Add player to the room
+      const [insertPlayerResult] = await connection.query(
+        'INSERT INTO players (room_id, real_name, leave_time) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+        [room.id, playerName]
+      ) as [ResultSetHeader, any];
 
-    // Return room info and player ID
-    return NextResponse.json({
-      playerData: playerData,
-      roomData: roomData
-    }, { status: 201 });
+      await connection.commit();
+
+      const playerData: PlayerData = {
+        id: insertPlayerResult.insertId,
+        fakeName: 'Placeholder',
+        realName: playerName,
+        votes: 0,
+        isLost: false,
+      }
+      const roomSettings: RoomSettings = {
+        maxPlayers: room.max_players,
+        questionsPerRound: room.questions_per_round,
+        timePerRound: room.time_per_round,
+        timePerVote: room.time_per_vote,
+        theme: room.theme,
+      }
+      const roomData: RoomData = {
+        roomId: room.id,
+        roomCode: roomCode,
+        roomState: room.room_state,
+        hostId: room.host_id,
+        settings: roomSettings,
+        roomRound: room.room_round,
+        roundStartTime: room.round_start_time,
+        createdAt: room.created_at,
+        expiresAt: room.expired_at
+      }
+
+      return NextResponse.json({
+        playerData: playerData,
+        roomData: roomData
+      }, { status: 201 });
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error joining room:', error);
     return NextResponse.json({ message: 'Error joining room' }, { status: 500 });

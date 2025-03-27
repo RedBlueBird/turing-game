@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '../../../db';
+import pool from '@/lib/db';
 
 export async function GET(
   request: Request,
@@ -44,8 +44,7 @@ export async function GET(
     let playerAnswers = [];
     if (questionIds.length > 0) {
       const [answersRows]: any = await pool.query(
-        `SELECT pa.question_id, pa.player_id, pa.content, pa.created_at,
-                p.real_name, p.fake_name
+        `SELECT pa.question_id, pa.player_id, pa.content, pa.created_at, p.fake_name
          FROM player_answers pa
          JOIN players p ON pa.player_id = p.id
          WHERE pa.question_id IN (?) AND p.room_id = ?
@@ -62,7 +61,7 @@ export async function GET(
         .filter(answer => answer.question_id === question.id)
         .map(answer => ({
           playerId: answer.player_id,
-          playerName: answer.fake_name || answer.real_name,
+          playerName: answer.fake_name,
           content: answer.content,
           timestamp: answer.created_at
         }));

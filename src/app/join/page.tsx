@@ -10,6 +10,7 @@ import { AnimatePresence } from 'framer-motion';
 import ActionButton from '@/components/ActionButton';
 import { pageTransitions } from '@/configs/animations';
 import { StoredData } from '@/configs/interfaces';
+import { ErrorMessage } from '@/components/ErrorMessage';
 
 export default function JoinRoom() {
   const router = useRouter();
@@ -267,15 +268,7 @@ export default function JoinRoom() {
           Join Room Code
         </h1>
 
-        {error && (
-          <motion.div 
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 w-full max-w-md"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {error}
-          </motion.div>
-        )}
+        <ErrorMessage message={error} />        
 
         <motion.div 
           className="bg-white rounded-lg shadow-md p-6 w-full max-w-md mb-6"

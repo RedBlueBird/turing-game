@@ -6,21 +6,23 @@ CREATE TABLE rooms (
   room_state ENUM('waiting', 'in_progress', 'completed') DEFAULT 'waiting',
   room_round INT DEFAULT 0,
   round_start_time TIMESTAMP,
+  has_eliminated BOOLEAN DEFAULT FALSE,
   room_code VARCHAR(4) NOT NULL,
-  max_players INT NOT NULL,
-  questions_per_round INT NOT NULL,
-  time_per_round INT NOT NULL,
-  time_per_vote INT NOT NULL,
-  theme VARCHAR(50) NOT NULL,
-  host_id INT DEFAULT 0
+  max_players INT DEFAULT 8,
+  questions_per_round INT DEFAULT 1,
+  time_per_round INT DEFAULT 45,
+  time_per_vote INT DEFAULT 30,
+  theme VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  host_id INT DEFAULT 0,
+  ai_id INT DEFAULT -1
 );
 
 -- Players table to store players in rooms
 CREATE TABLE players (
   id INT AUTO_INCREMENT PRIMARY KEY,
   room_id INT NOT NULL,
-  fake_name VARCHAR(50) DEFAULT 'Placeholder',
-  real_name VARCHAR(50) NOT NULL,
+  fake_name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Placeholder',
+  real_name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   join_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   leave_time TIMESTAMP,
   is_ai BOOLEAN DEFAULT FALSE,
@@ -33,10 +35,11 @@ CREATE TABLE players (
 -- Questions table for storing questions by theme
 CREATE TABLE questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  theme VARCHAR(50) NOT NULL,
-  content VARCHAR(100) NOT NULL,
+  theme VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  content VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   liked INT DEFAULT 0,
   disliked INT DEFAULT 0,
+  views INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -56,9 +59,15 @@ CREATE TABLE player_answers (
   id INT AUTO_INCREMENT PRIMARY KEY,
   player_id INT NOT NULL,
   question_id INT NOT NULL,
-  content VARCHAR(200) NOT NULL,
+  content VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   liked INT DEFAULT 0,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
   FOREIGN KEY (question_id) REFERENCES questions(id)
+);
+
+-- Player feedbacks
+CREATE TABLE feedbacks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  content VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
 );

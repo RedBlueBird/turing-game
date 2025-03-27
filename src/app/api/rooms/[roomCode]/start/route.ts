@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import pool from '../../../db';
+import pool from '@/lib/db';
+import { getAzureAICompletion } from '@/lib/azure-ai-completion';
+import fakename from '@/data/fakename.json';
+import { shuffle } from '@/lib/util';
 
 export async function POST(
   request: Request,
@@ -38,19 +41,19 @@ export async function POST(
     }
 
     // Check if there are enough players (minimum 2)
-    const [playerCountRows]: any = await pool.query(
-      'SELECT COUNT(*) as playerCount FROM players WHERE room_id = ? AND leave_time > NOW()',
+    const [playerRows]: any = await pool.query(
+      'SELECT id FROM players WHERE room_id = ? AND leave_time > NOW() AND is_ai = 0',
       [room.id]
     );
     
-    const playerCount = playerCountRows[0].playerCount;
+    const playerCount = playerRows.length;
     if (playerCount < 2) {
       return NextResponse.json({ message: 'Need at least 2 players to start the game' }, { status: 400 });
     }
 
     // Select questions for the game based on the theme and questions_per_round
     const [availableQuestionsRows]: any = await pool.query(
-      'SELECT id FROM questions WHERE theme = ? ORDER BY RAND() LIMIT ?',
+      'SELECT id, content FROM questions WHERE theme = ? ORDER BY RAND() LIMIT ?',
       [room.theme, room.questions_per_round]
     );
     
@@ -71,6 +74,25 @@ export async function POST(
         ['in_progress', room.id]
       );
       
+      // Update random names for all players in the room
+      const shuffledNames = shuffle(fakename.names);
+      let playerNameUpdates = playerRows.map((player, index) => ({
+        id: player.id,
+        name: shuffledNames[index]
+      }));
+      playerNameUpdates.push({id: room.ai_id, name: shuffledNames[playerRows.length]});
+      const caseStatements = playerNameUpdates.map(update => 
+        `WHEN id = ${connection.escape(update.id)} THEN ${connection.escape(update.name)}`
+      ).join(' ');
+      await connection.query(`
+        UPDATE players 
+        SET fake_name = CASE 
+          ${caseStatements}
+          ELSE fake_name 
+        END
+        WHERE id IN (${playerNameUpdates.map(u => connection.escape(u.id)).join(',')})
+      `);
+
       // Insert selected questions into room_questions for round 1
       for (const question of availableQuestionsRows) {
         await connection.query(
@@ -78,7 +100,47 @@ export async function POST(
           [room.id, 1, question.id]
         );
       }
-      
+
+      // Increase the views of each selected question by 1
+      for (const question of availableQuestionsRows) {
+        await connection.query(
+          'UPDATE questions SET views = views + 1 WHERE id = ?',
+          [question.id]
+        );
+      }
+
+      // Insert AI answers into player_answers for round 1
+      let aiAnswers = [];
+      for (const question of availableQuestionsRows) {
+        const result = await getAzureAICompletion(question.content);
+        if (!result.success) {
+          return NextResponse.json({ error: result.error }, { status: result.status });
+        }
+        aiAnswers.push({result: result.result, questionId: question.id});
+      }
+      for (const answer of aiAnswers) {
+        // Truncate to last complete word within 200 characters
+        let truncatedAnswer = answer.result.slice(0, 200);
+        if (answer.result.length > 200) {
+          truncatedAnswer = truncatedAnswer.slice(0, truncatedAnswer.lastIndexOf(' '));
+        }
+        await connection.query(
+          'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
+          [room.ai_id, answer.questionId, truncatedAnswer]
+        );
+      }
+
+      // Let AI vote a random player
+      const randomPlayerId = playerRows[Math.floor(Math.random() * playerRows.length)].id;
+      await connection.query(
+        'UPDATE players SET votes = votes + 1 WHERE id = ?',
+        [randomPlayerId]
+      );
+      await connection.query(
+        'UPDATE players SET voted_player_id = ? WHERE id = ?',
+        [randomPlayerId, room.ai_id]
+      );
+
       await connection.commit();
       
       return NextResponse.json({

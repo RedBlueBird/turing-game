@@ -10,6 +10,19 @@ import { AnimatePresence } from 'framer-motion';
 import ActionButton from '@/components/ActionButton';
 import { pageTransitions } from '@/configs/animations';
 import { PlayerData, RoomSettings, StoredData } from '@/configs/interfaces';
+import { ErrorMessage } from '@/components/ErrorMessage';
+
+const PLAYER_COUNT_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
+const QUESTIONS_PER_ROUND_OPTIONS = [1, 2, 3];
+const TIME_OPTIONS = [30, 45, 60, 90, 120, 1200];
+const THEMES = [
+  { id: 'general', label: 'General' },
+  { id: 'quirky', label: 'Quirky' },
+  { id: 'hypotheticals', label: 'Hypothetical' },
+  { id: 'experiences', label: 'Experiences' },
+  { id: 'philosophical', label: 'Philosophical' },
+  { id: 'romantic', label: 'Romantic' },
+];
 
 export default function CreateRoom() {
   const router = useRouter();
@@ -18,26 +31,19 @@ export default function CreateRoom() {
   const [error, setError] = useState('');
   const [roomSettings, setRoomSettings] = useState<RoomSettings>({
     maxPlayers: 4,
-    questionsPerRound: 3,
-    timePerRound: 60,
-    timePerVote: 60,
+    questionsPerRound: 1,
+    timePerRound: 45,
+    timePerVote: 30,
     theme: 'general'
   });
-
-  const themes = [
-    { id: 'general', label: 'General' },
-    { id: 'quirky', label: 'Quirky' },
-    { id: 'hypotheticals', label: 'Hypothetical' },
-    { id: 'experiences', label: 'Experiences' },
-    { id: 'philosophical', label: 'Philosophical' },
-    { id: 'romantic', label: 'Romantic' },
-  ];
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setRoomSettings({
-      ...roomSettings
+      ...roomSettings,
+      [name]: name === 'theme' ? value : parseInt(value)
     });
+    console.log(roomSettings);
   };
 
   const handleSubmit = async (e) => {
@@ -121,15 +127,7 @@ export default function CreateRoom() {
           Create New Room
         </h1>
 
-        {error && (
-          <motion.div 
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 w-full max-w-md"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {error}
-          </motion.div>
-        )}
+        <ErrorMessage message={error} />
 
         <motion.div 
           className="bg-white rounded-lg shadow-md p-6 w-full max-w-md mb-6"
@@ -147,7 +145,7 @@ export default function CreateRoom() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
-                {[2, 3, 4, 5, 6, 7, 8].map(num => (
+                {PLAYER_COUNT_OPTIONS.map(num => (
                   <option key={num} value={num}>{num} players</option>
                 ))}
               </select>
@@ -162,7 +160,7 @@ export default function CreateRoom() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
-                {[1, 2, 3, 4, 5].map(num => (
+                {QUESTIONS_PER_ROUND_OPTIONS.map(num => (
                   <option key={num} value={num}>{num} questions</option>
                 ))}
               </select>
@@ -177,12 +175,9 @@ export default function CreateRoom() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
-                <option value="15">15 seconds</option>
-                <option value="30">30 seconds</option>
-                <option value="45">45 seconds</option>
-                <option value="60">60 seconds</option>
-                <option value="90">90 seconds</option>
-                <option value="120">120 seconds</option>
+                {TIME_OPTIONS.map(seconds => (
+                  <option key={seconds} value={seconds}>{seconds} seconds</option>
+                ))}
               </select>
             </div>
 
@@ -195,12 +190,9 @@ export default function CreateRoom() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
-                <option value="15">15 seconds</option>
-                <option value="30">30 seconds</option>
-                <option value="45">45 seconds</option>
-                <option value="60">60 seconds</option>
-                <option value="90">90 seconds</option>
-                <option value="120">120 seconds</option>
+                {TIME_OPTIONS.map(seconds => (
+                  <option key={seconds} value={seconds}>{seconds} seconds</option>
+                ))}
               </select>
             </div>
 
@@ -213,7 +205,7 @@ export default function CreateRoom() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
-                {themes.map(theme => (
+                {THEMES.map(theme => (
                   <option key={theme.id} value={theme.id}>
                     {theme.label}
                   </option>

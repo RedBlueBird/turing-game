@@ -72,7 +72,7 @@ export default function Home() {
               Social deduction between human & AI
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 w-full max-w-md">
+            <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-md">
               <motion.button 
                 onClick={handleJoin}
                 className="flex flex-col items-center justify-center bg-yellow-400 rounded-lg py-8 px-4 hover:bg-yellow-500 transition-colors"

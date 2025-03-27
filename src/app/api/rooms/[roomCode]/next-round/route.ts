@@ -1,6 +1,7 @@
 // app/api/rooms/[roomCode]/next-round/route.ts
 import { NextResponse } from 'next/server';
-import pool from '../../../db';
+import pool from '@/lib/db';
+import { getAzureAICompletion } from '@/lib/azure-ai-completion';
 
 export async function POST(
   request: Request,
@@ -25,93 +26,154 @@ export async function POST(
       return NextResponse.json({ message: 'Room not found or expired' }, { status: 404 });
     }
 
-    const roomId = roomRows[0].id;
-    const hostId = roomRows[0].host_id;
+    const room = roomRows[0];
     const currentRound = roomRows[0].room_round;
 
     // Only host can start next round
-    if (playerId !== hostId) {
+    if (playerId !== room.host_id) {
       return NextResponse.json({ message: 'Only the host can start the next round' }, { status: 403 });
     }
 
     // Check if any human players are left
     const [humanPlayers]: any = await pool.query(
-      'SELECT COUNT(*) as count FROM players WHERE room_id = ? AND is_lost = 0 AND is_ai = 0',
-      [roomId]
+      'SELECT id FROM players WHERE room_id = ? AND is_lost = 0 AND is_ai = 0',
+      [room.id]
     );
 
     // Check if AI player is still in the game
     const [aiPlayer]: any = await pool.query(
-      'SELECT COUNT(*) as count FROM players WHERE room_id = ? AND is_lost = 0 AND is_ai = 1',
-      [roomId]
+      'SELECT id FROM players WHERE room_id = ? AND is_lost = 0 AND is_ai = 1',
+      [room.id]
     );
 
-    // If game should end (no humans left or AI eliminated)
-    if (humanPlayers[0].count <= 1 || aiPlayer[0].count === 0) {
-      // Update room state to completed
-      await pool.query(
-        'UPDATE rooms SET room_state = "completed" WHERE id = ?',
-        [roomId]
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // If game should end (no humans left or AI eliminated)
+      if (humanPlayers.length <= 1 || aiPlayer.length === 0) {
+        // Update room state to completed
+        await connection.query(
+          'UPDATE rooms SET room_state = "completed" WHERE id = ?',
+          [room.id]
+        );
+
+        console.log({ 
+          message: 'Game completed',
+          gameComplete: true,
+          aiEliminated: aiPlayer.length === 0,
+          humanWinner: humanPlayers.length > 0
+        });
+
+        await connection.commit();
+        return NextResponse.json({ 
+          message: 'Game completed',
+          gameComplete: true,
+          aiEliminated: aiPlayer.length === 0,
+          humanWinner: humanPlayers.length > 0
+        }, { status: 200 });
+      }
+
+      // Reset votes and voted_player_id for all players in the room
+      await connection.query(
+        'UPDATE players SET votes = 0, voted_player_id = 0 WHERE room_id = ?',
+        [room.id]
       );
+
+      // Increment round and update start time
+      await connection.query(
+        'UPDATE rooms SET room_round = ?, round_start_time = NOW(), has_eliminated = 0 WHERE id = ?',
+        [currentRound + 1, room.id]
+      );
+
+      // Select random questions for the next round
+      const [themes]: any = await connection.query(
+        'SELECT theme FROM rooms WHERE id = ?',
+        [room.id]
+      );
+
+      const theme = themes[0].theme;
+      const [questionsPerRound]: any = await connection.query(
+        'SELECT questions_per_round FROM rooms WHERE id = ?',
+        [room.id]
+      );
+
+      // Get random questions for the next round
+      const [randomQuestions]: any = await connection.query(
+        `SELECT id FROM questions 
+         WHERE theme = ? 
+         AND id NOT IN (
+           SELECT question_id FROM room_questions 
+           WHERE room_id = ?
+         )
+         ORDER BY RAND() 
+         LIMIT ?`,
+        [theme, room.id, questionsPerRound[0].questions_per_round]
+      );
+
+      // Insert questions for the new round
+      const nextRound = currentRound + 1;
+      for (const question of randomQuestions) {
+        await connection.query(
+          'INSERT INTO room_questions (room_id, room_round, question_id) VALUES (?, ?, ?)',
+          [room.id, nextRound, question.id]
+        );
+      }
+
+      // Increase the views of each selected question by 1
+      for (const question of randomQuestions) {
+        await connection.query(
+          'UPDATE questions SET views = views + 1 WHERE id = ?',
+          [question.id]
+        );
+      }
+
+      // Insert AI answers into player_answers for the next round 
+      let aiAnswers = [];
+      for (const question of randomQuestions) {
+        const result = await getAzureAICompletion(question.content);
+        if (!result.success) {
+          return NextResponse.json({ error: result.error }, { status: result.status });
+        }
+        aiAnswers.push({result: result.result, questionId: question.id});
+      }
+      for (const answer of aiAnswers) {
+        // Truncate to last complete word within 200 characters 
+        let truncatedAnswer = answer.result.slice(0, 200);
+        if (answer.result.length > 200) {
+          truncatedAnswer = truncatedAnswer.slice(0, truncatedAnswer.lastIndexOf(' '));
+        }
+        await connection.query(
+          'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
+          [room.ai_id, answer.questionId, truncatedAnswer]
+        );
+      }
+
+      // Let AI vote a random player
+      const randomPlayerId = humanPlayers[Math.floor(Math.random() * humanPlayers.length)].id;
+      await connection.query(
+        'UPDATE players SET votes = votes + 1 WHERE id = ?',
+        [randomPlayerId]
+      );
+      await connection.query(
+        'UPDATE players SET voted_player_id = ? WHERE id = ?',
+        [randomPlayerId, room.ai_id]
+      );
+
+      await connection.commit();
 
       return NextResponse.json({ 
-        message: 'Game completed',
-        gameComplete: true,
-        aiEliminated: aiPlayer[0].count === 0,
-        humanWinner: humanPlayers[0].count > 0
+        message: 'Next round started successfully',
+        roundNumber: nextRound
       }, { status: 200 });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error processing next round:', error);
+      return NextResponse.json({ message: 'Error processing next round' }, { status: 500 });
+    } finally {
+      connection.release();
     }
-
-    // Reset votes and voted_player_id for all players in the room
-    await pool.query(
-      'UPDATE players SET votes = 0, voted_player_id = 0 WHERE room_id = ?',
-      [roomId]
-    );
-
-    // Increment round and update start time
-    await pool.query(
-      'UPDATE rooms SET room_round = ?, round_start_time = NOW() WHERE id = ?',
-      [currentRound + 1, roomId]
-    );
-
-    // Select random questions for the next round
-    const [themes]: any = await pool.query(
-      'SELECT theme FROM rooms WHERE id = ?',
-      [roomId]
-    );
-
-    const theme = themes[0].theme;
-    const [questionsPerRound]: any = await pool.query(
-      'SELECT questions_per_round FROM rooms WHERE id = ?',
-      [roomId]
-    );
-
-    // Get random questions for the next round
-    const [randomQuestions]: any = await pool.query(
-      `SELECT id FROM questions 
-       WHERE theme = ? 
-       AND id NOT IN (
-         SELECT question_id FROM room_questions 
-         WHERE room_id = ?
-       )
-       ORDER BY RAND() 
-       LIMIT ?`,
-      [theme, roomId, questionsPerRound[0].questions_per_round]
-    );
-
-    // Insert questions for the new round
-    const nextRound = currentRound + 1;
-    for (const question of randomQuestions) {
-      await pool.query(
-        'INSERT INTO room_questions (room_id, room_round, question_id) VALUES (?, ?, ?)',
-        [roomId, nextRound, question.id]
-      );
-    }
-
-    return NextResponse.json({ 
-      message: 'Next round started successfully',
-      newRound: nextRound
-    }, { status: 201 });
   } catch (error) {
     console.error('Error starting next round:', error);
     return NextResponse.json({ message: 'Error starting next round' }, { status: 500 });

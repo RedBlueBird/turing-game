@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '../../../db';
+import pool from '@/lib/db';
 
 export async function POST(
   request: Request,
@@ -60,23 +60,33 @@ export async function POST(
       [playerId, questionId]
     );
 
-    if (existingAnswerRows.length > 0) {
-      // Update existing answer
-      await pool.query(
-        'UPDATE player_answers SET content = ? WHERE player_id = ? AND question_id = ?',
-        [answer, playerId, questionId]
-      );
-    } else {
-      // Insert new answer
-      await pool.query(
-        'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
-        [playerId, questionId, answer]
-      );
-    }
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    return NextResponse.json({
-      message: 'Answer submitted successfully'
-    }, { status: 200 });
+    try {
+      if (existingAnswerRows.length > 0) {
+        // Update existing answer
+        await connection.query(
+          'UPDATE player_answers SET content = ? WHERE player_id = ? AND question_id = ?',
+          [answer, playerId, questionId]
+        );
+      } else {
+        // Insert new answer
+        await connection.query(
+          'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
+          [playerId, questionId, answer]
+        );
+      }
+
+      await connection.commit();
+      return NextResponse.json({ message: 'Answer submitted successfully' }, { status: 200 });
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('Error submitting answer:', error);
     return NextResponse.json({ message: 'Error submitting answer' }, { status: 500 });

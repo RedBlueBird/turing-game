@@ -4,6 +4,10 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { pageTransitions, containerTransitions, itemTransitions } from '@/configs/animations';
 import { PlayerData, RoomData, InterfaceState } from '@/configs/interfaces';
+import { GameHeader } from '@/components/room/GameHeader';
+import { AnswersPanel } from '@/components/room/AnswersPanel';
+import { ErrorMessage } from '@/components/ErrorMessage';
+import { Tooltip } from '@/components/Tooltip';
 
 interface VotingInterfaceProps {
   roomData: RoomData;
@@ -81,7 +85,7 @@ export default function VotingInterface({
           setRoundComplete(votesData.roundComplete || false);
           
           // Set eliminated players
-          if (votesData.eliminatedPlaye) {
+          if (votesData.eliminatedPlayer) {
             setEliminatedPlayer(votesData.eliminatedPlayer);
           }
         }
@@ -199,131 +203,40 @@ export default function VotingInterface({
   };
 
   return (
-    <motion.div
-      key="voting-interface"
+    <motion.div 
+      key="question-interface"
       initial="initial"
       animate="enter"
       exit="exit"
       variants={pageTransitions}
       className="flex flex-col items-center w-full min-h-screen bg-gray-100 p-4"
-    >
-      {/* Title Section */}
-      <div className="w-full text-center mb-8 mt-8">
-        <h1 className="text-6xl font-bold mb-4 text-gray-900">
-          Voting Time
-        </h1>
-        <p className="text-2xl text-gray-700 mb-4">
-          Round {roomData.roomRound} • Time Remaining: <span className="text-red-500 font-medium">{formatTime(remainingTime)}</span>
-        </p>
-        <p className="text-xl text-gray-700">
-          Vote for the player you think is the AI
-        </p>
-      </div>
+    >      
+      <GameHeader 
+        title="Voting Time"
+        round={roomData.roomRound}
+        remainingTime={remainingTime}
+        subtitle="Vote for the player you think is the AI"
+      />
       
-      {/* Two-panel layout with adjusted width ratio */}
-      <div className="flex flex-col md:flex-row w-full max-w-6xl gap-6 flex-grow" style={{ height: "calc(100vh - 260px)" }}>
-        {/* Left Panel - Everyone's answers (40% width) */}
-        <div className="w-full md:w-2/5 mb-6 md:mb-0">
-          <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              Everyone's Answers
-            </h2>
-            
-            {/* Scrollable answers container */}
-            <div className="flex-grow overflow-y-auto">
-              {questions.length > 0 && questions[currentQuestionIndex]?.playerAnswers.length > 0 ? (
-                <div className="space-y-4">
-                  {questions[currentQuestionIndex].playerAnswers.map((playerAnswer, index) => {
-                    const isCurrentPlayer = playerAnswer.playerId === playerData.id;
-                    return (
-                      <motion.div
-                        key={`${playerAnswer.playerId}-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`${isCurrentPlayer ? 'bg-yellow-100 border-l-4 border-yellow-400' : 'bg-gray-50'} rounded-lg p-4 shadow-sm`}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium text-gray-800">
-                            {playerAnswer.playerName}
-                            {isCurrentPlayer && " (You)"}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(playerAnswer.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{playerAnswer.content}</p>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-12">
-                  No answers available
-                </div>
-              )}
-            </div>
-            
-            {/* Question navigation arrows */}
-            {hasMultipleQuestions && (
-              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-                <motion.button
-                  onClick={handlePrevQuestion}
-                  disabled={currentQuestionIndex === 0}
-                  className={`p-2 rounded-full ${
-                    currentQuestionIndex === 0 
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                      : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
-                  }`}
-                  whileHover={currentQuestionIndex !== 0 ? { scale: 1.1 } : {}}
-                  whileTap={currentQuestionIndex !== 0 ? { scale: 0.9 } : {}}
-                >
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </motion.button>
-                
-                <span className="text-gray-700 font-medium">
-                  Question {currentQuestionIndex + 1} / {questions.length}
-                </span>
-                
-                <motion.button
-                  onClick={handleNextQuestion}
-                  disabled={currentQuestionIndex === questions.length - 1}
-                  className={`p-2 rounded-full ${
-                    currentQuestionIndex === questions.length - 1 
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                      : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
-                  }`}
-                  whileHover={currentQuestionIndex !== questions.length - 1 ? { scale: 1.1 } : {}}
-                  whileTap={currentQuestionIndex !== questions.length - 1 ? { scale: 0.9 } : {}}
-                >
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </motion.button>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="flex flex-col-reverse md:flex-row w-full max-w-6xl gap-6 flex-grow mb-4" style={{ minHeight: "calc(100vh - 260px)", height: "auto" }}>
+        <AnswersPanel
+          questions={questions}
+          currentQuestionIndex={currentQuestionIndex}
+          playerData={playerData}
+          onPrevQuestion={handlePrevQuestion}
+          onNextQuestion={handleNextQuestion}
+          className="flex-shrink-0"
+        />
         
-        {/* Right Panel - Voting area (60% width) */}
-        <div className="w-full md:w-3/5 flex flex-col h-full">
-          <div className="p-6 bg-white rounded-lg shadow-md flex flex-col h-full">
+        {/* Right Panel - Voting area */}
+        <div className="w-full md:w-3/5 flex flex-col">
+          <div className="p-6 flex flex-col bg-white rounded-lg shadow-md h-full">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">
               {roundComplete ? "Voting Results" : "Vote Who Is AI"}
             </h2>
             
             {/* Error message */}
-            {error && (
-              <motion.div 
-                className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                {error}
-              </motion.div>
-            )}
+            <ErrorMessage message={error} />
             
             {/* Voting area */}
             <div className="flex-grow overflow-y-auto">
@@ -331,6 +244,7 @@ export default function VotingInterface({
                 <div className="space-y-4">
                   {roomData.players
                     .filter(player => !player.isLost) // Only show players still in the game
+                    .sort((a, b) => (a.fakeName || '').localeCompare(b.fakeName || '')) // Sort alphabetically by fakeName
                     .map((player, index) => {
                       const playerVotes = getVotesForPlayer(player.id);
                       const isCurrentPlayer = (player.id === playerData.id);
@@ -364,26 +278,47 @@ export default function VotingInterface({
                               {/* Votes display */}
                               {playerVotes.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mr-4 mb-2 md:mb-0">
-                                  {playerVotes.map((vote, voteIndex) => (
-                                    <span 
-                                      key={voteIndex}
-                                      className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full"
+                                  {playerVotes.length <= 2 ? (
+                                    // Show individual votes if 2 or fewer
+                                    playerVotes.map((vote, voteIndex) => (
+                                      <span 
+                                        key={voteIndex}
+                                        className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full"
+                                      >
+                                        {vote.voterName}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    // Show compact version with tooltip if more than 2
+                                    <Tooltip 
+                                      content={
+                                        <div className="p-2">
+                                          <p className="font-semibold mb-1">Voters:</p>
+                                          <ul className="space-y-1">
+                                            {playerVotes.map((vote, idx) => (
+                                              <li key={idx}>{vote.voterName}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      }
                                     >
-                                      {vote.voterName}
-                                    </span>
-                                  ))}
+                                      <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full cursor-help">
+                                        +{playerVotes.length}
+                                      </span>
+                                    </Tooltip>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* Vote button */}
-                              {!isCurrentPlayer && !roundComplete && (
+                              {/* Vote button - now shown for all players, but disabled for current player */}
+                              {!roundComplete && (
                                 <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                  whileHover={{ scale: isCurrentPlayer ? 1 : 1.05 }}
+                                  whileTap={{ scale: isCurrentPlayer ? 1 : 0.95 }}
                                   onClick={() => handleVote(player.id)}
-                                  disabled={votedPlayerId !== null || isSubmitting}
+                                  disabled={isCurrentPlayer || votedPlayerId !== null || isSubmitting}
                                   className={`px-6 py-2 rounded-full font-medium ${
-                                    votedPlayerId !== null || isSubmitting
+                                    isCurrentPlayer || votedPlayerId !== null || isSubmitting
                                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                       : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
                                   }`}

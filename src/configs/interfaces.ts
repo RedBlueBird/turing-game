@@ -1,7 +1,7 @@
 // configs/interfaces.ts
 export interface PlayerData {
   id: number;
-  fakeName?: string;
+  fakeName: string;
   realName?: string;
   joinTime?: string;
   votes?: number;
@@ -27,6 +27,7 @@ export interface RoomData {
   createdAt?: string;
   expiresAt?: string;
   players?: PlayerData[];
+  aiEliminated?: boolean;
 }
 
 export interface StoredData {
@@ -41,4 +42,17 @@ export enum InterfaceState {
   Waiting, 
   Question,
   Voting,
+}
+
+export interface QuestionData {
+  id: number;
+  content: string;
+  playerAnswers: PlayerAnswer[];
+}
+
+export interface PlayerAnswer {
+  playerId: number;
+  playerName: string;
+  content: string;
+  timestamp: string;
 }
