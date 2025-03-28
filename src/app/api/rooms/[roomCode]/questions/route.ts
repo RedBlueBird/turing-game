@@ -47,7 +47,7 @@ export async function GET(
         `SELECT pa.question_id, pa.player_id, pa.content, pa.created_at, p.fake_name
          FROM player_answers pa
          JOIN players p ON pa.player_id = p.id
-         WHERE pa.question_id IN (?) AND p.room_id = ?
+         WHERE pa.question_id IN (?) AND p.room_id = ? AND pa.created_at < NOW()
          ORDER BY pa.created_at`,
         [questionIds, room.id]
       );

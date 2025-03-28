@@ -111,12 +111,16 @@ export async function POST(
 
       // Insert AI answers into player_answers for round 1
       let aiAnswers = [];
+      let createdAt = new Date();
       for (const question of availableQuestionsRows) {
         const result = await getAzureAICompletion(question.content);
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: result.status });
         }
-        aiAnswers.push({result: result.result, questionId: question.id});
+        // Add random seconds to createdAt to mimic human typing
+        let threshold = result.result.length / 10;
+        createdAt.setSeconds(createdAt.getSeconds() + Math.floor(Math.random() * (room.time_per_round / room.questions_per_round - threshold) + threshold));
+        aiAnswers.push({result: result.result, questionId: question.id, createdAt: createdAt});
       }
       for (const answer of aiAnswers) {
         // Truncate to last complete word within 200 characters
@@ -125,8 +129,8 @@ export async function POST(
           truncatedAnswer = truncatedAnswer.slice(0, truncatedAnswer.lastIndexOf(' '));
         }
         await connection.query(
-          'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
-          [room.ai_id, answer.questionId, truncatedAnswer]
+          'INSERT INTO player_answers (player_id, question_id, content, created_at) VALUES (?, ?, ?, ?)',
+          [room.ai_id, answer.questionId, truncatedAnswer, answer.createdAt]
         );
       }
 

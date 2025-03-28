@@ -51,6 +51,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
+      id-token: write #Required for Azure login
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -72,3 +75,46 @@ jobs:
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9E22F7498B36495A99F59D3D44B9B2C2 }}
+
+      - name: Configure Azure Web App Settings
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: 'turing-game'
+          app-settings-json: |
+            [
+              {
+                "name": "AZURE_AI_API_KEY",
+                "value": "${{ secrets.AZURE_AI_API_KEY }}",
+                "slotSetting": false
+              },
+              {
+                "name": "AZURE_AI_DEPLOYMENT_NAME",
+                "value": "${{ secrets.AZURE_AI_DEPLOYMENT_NAME }}",
+                "slotSetting": false
+              },
+              {
+                "name": "AZURE_AI_ENDPOINT",
+                "value": "${{ secrets.AZURE_AI_ENDPOINT }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MYSQL_DATABASE",
+                "value": "${{ secrets.MYSQL_DATABASE }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MYSQL_HOST",
+                "value": "${{ secrets.MYSQL_HOST }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MYSQL_PASSWORD",
+                "value": "${{ secrets.MYSQL_PASSWORD }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MYSQL_USER",
+                "value": "${{ secrets.MYSQL_USER }}",
+                "slotSetting": false
+              }
+            ]
