@@ -21,14 +21,14 @@ export function AnswersPanel({
   const hasMultipleQuestions = questions.length > 1;
 
   return (
-    <div className={`w-full md:w-2/5 mb-6 md:mb-0 ${className}`}>
+    <div className={`w-full md:w-2/5 mb-6 md:mb-0 h-screen ${className}`}>
       <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           Everyone's Answers
         </h2>
         
         {/* Answers list */}
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-y-auto min-h-0">
           {questions.length > 0 && questions[currentQuestionIndex] && questions[currentQuestionIndex].playerAnswers?.length > 0 ? (
             <div className="space-y-4">
               {questions[currentQuestionIndex].playerAnswers.map((playerAnswer, index) => {
