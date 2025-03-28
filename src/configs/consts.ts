@@ -1,4 +1,4 @@
-export const PLAYER_COUNT_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
+export const PLAYER_COUNT_OPTIONS = [2];
 export const QUESTIONS_PER_ROUND_OPTIONS = [1, 2, 3];
 export const TIME_OPTIONS = [30, 45, 60, 90, 120, 1200];
 export const THEMES = [
