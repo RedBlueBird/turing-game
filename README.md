@@ -88,7 +88,6 @@ AI Among Us is a real-time multiplayer social deduction game that leverages Azur
 ---
 *Built with Azure Cloud Services ☁️*
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
