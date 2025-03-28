@@ -10,11 +10,13 @@ import { pageTransitions } from '@/configs/animations';
 import ChangeLogPopup from '@/components/ChangeLogPopup';
 import ActionButton from '@/components/ActionButton';
 import changeLogData from '@/data/changelog.json';
+import HowToPlayPopup from '@/components/HowToPlayPopup';
 
 export default function Home() {
   const router = useRouter();
   const [isUiVisible, setIsUiVisible] = useState(true);
   const [showChangeLog, setShowChangeLog] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const handleCreate = () => {
     setIsUiVisible(false);
@@ -39,8 +41,11 @@ export default function Home() {
   };
 
   const handleHowToPlay = () => {
-    // Add your how to play logic here
-    console.log('How to play clicked');
+    setShowHowToPlay(true);
+  };
+
+  const handleCloseHowToPlay = () => {
+    setShowHowToPlay(false);
   };
 
   return (
@@ -49,6 +54,10 @@ export default function Home() {
         isOpen={showChangeLog} 
         onClose={handleCloseChangeLog} 
         changeLog={changeLogData} 
+      />
+      <HowToPlayPopup
+        isOpen={showHowToPlay}
+        onClose={handleCloseHowToPlay}
       />
       
       <AnimatePresence>

@@ -41,7 +41,7 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
       onClick={handleBackdropClick}
     >
       <motion.div
-        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] flex flex-col"
+        className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] flex flex-col mx-4"
         variants={popupTransitions}
         initial="hidden"
         animate="visible"

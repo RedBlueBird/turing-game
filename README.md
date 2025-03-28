@@ -28,7 +28,7 @@ Turing Game is a real-time multiplayer social deduction game powered by Azure. P
    - Monitors user engagement metrics
 
 ## Technical Implementation
-- **Frontend**: Next.js, React, TypeScript
+- **Frontend**: Tailwind, Next.js, React, TypeScript
 - **Backend**: Next.js, Azure App Service
 - **Database**: Azure Database for MySQL flexible server
 - **AI Services**: Azure AI Inference Service
@@ -44,3 +44,4 @@ Turing Game is a real-time multiplayer social deduction game powered by Azure. P
 
 ---
 *Built with Azure Cloud Services ☁️*
+*Frontpage UI design inspired by [Emoji Charades](https://devpost.com/software/emoji-charades)*

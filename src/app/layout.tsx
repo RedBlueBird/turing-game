@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Turing Game",
-  description: "An online multiplayer game for human who want to see if they are a NPC",
+  description: "Social deduction between human & AI",
 };
 
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode;}>) {

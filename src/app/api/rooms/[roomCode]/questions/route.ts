@@ -10,14 +10,15 @@ export async function GET(
     params = await params;
     const roomCode = params.roomCode;
     const { searchParams } = new URL(request.url);
-    const round = searchParams.get('round') || 1;
+    const round = searchParams.get('round') || '1';
     
     // Validate room code format
     if (!isValidRoomCode(roomCode)) {
       return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
     }
 
-    if (!round || !Number.isInteger(Number(round)) || Number(round) <= 0) {
+    // Validate round is a string representing a positive integer
+    if (!/^[1-9]\d*$/.test(round)) {
       return NextResponse.json({ message: 'Invalid round number' }, { status: 400 });
     }
 
