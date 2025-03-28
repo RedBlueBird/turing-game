@@ -1,4 +1,4 @@
-# Turing Game - A Social Deduction Party Game
+# Turing Game - A Social Deduction Party Game Between Human & AI
 *Azure AI Developer Hackathon Entry - Best Azure App Integration Category*
 
 ## Project Description
