@@ -23,6 +23,16 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Create .env file
+        run: |
+          echo "AZURE_AI_API_KEY=${{ secrets.AZURE_AI_API_KEY }}" >> .env.local
+          echo "AZURE_AI_DEPLOYMENT_NAME=${{ secrets.AZURE_AI_DEPLOYMENT_NAME }}" >> .env.local
+          echo "AZURE_AI_ENDPOINT=${{ secrets.AZURE_AI_ENDPOINT }}" >> .env.local
+          echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env.local
+          echo "MYSQL_HOST=${{ secrets.MYSQL_HOST }}" >> .env.local
+          echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env.local
+          echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env.local
+
       - name: npm install, build, and test
         run: |
           npm install
