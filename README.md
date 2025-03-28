@@ -1,8 +1,8 @@
-# Turing Game - A Social Deduction Party Game Between Human & AI
+# Turing Game - Social Deduction Between Human & AI
 *Azure AI Developer Hackathon Entry - Best Azure App Integration Category*
 
 ## Project Description
-Turing Game is a real-time multiplayer social deduction game that leverages Azure's cloud infrastructure to deliver a seamless gaming experience. Players join virtual rooms to compete against an AI opponent. At each round of the game, every human and AI player responds to question prompts. They then vote and eliminate the player with the most AI-sounding response. Rounds continue until either one human remains or the AI is voted out.
+Turing Game is a real-time multiplayer social deduction game powered by Azure. Players compete in virtual rooms against an AI opponent, answering prompts and voting out the most AI-sounding responses. The game continues until only one human remains or the AI is eliminated, with Azure integration ensuring seamless performance.
 
 ## Demo Video
 [Watch our 3-minute demo on YouTube](your-video-link-here)
