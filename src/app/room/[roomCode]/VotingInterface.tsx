@@ -235,7 +235,6 @@ export default function VotingInterface({
               {roundComplete ? "Voting Results" : "Vote Who Is AI"}
             </h2>
             
-            {/* Error message */}
             <ErrorMessage message={error} />
             
             {/* Voting area */}

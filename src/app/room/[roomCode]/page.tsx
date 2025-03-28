@@ -35,7 +35,7 @@ export default function RoomPage() {
     const storedPlayerData = localStorage.getItem('turingGame_player');
     if (storedPlayerData) {
       const parsedPlayerData = JSON.parse(storedPlayerData);
-      // Possible game integrity compromise here
+      // TODO: Address the possible game integrity compromise here
       setPlayerData(parsedPlayerData);
       
       // Redirect if player is already in a room and different from the url entered
@@ -323,7 +323,7 @@ export default function RoomPage() {
   if (gameComplete) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center mx-4">
           <h1 className="text-3xl font-bold mb-6">Game Over!</h1>
           
           {gameResults?.aiEliminated ? (

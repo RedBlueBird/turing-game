@@ -194,12 +194,9 @@ export default function QuestionInterface({
               <div className="text-center text-gray-500 py-8">Loading questions...</div>
             )}
             
-            {/* Error message */}
             <ErrorMessage message={error} />
             
-            {/* Content positioned in the vertical center */}
             <div className="flex-grow flex items-center justify-center">
-              {/* Answer input or already answered message */}
               {questions.length > 0 && !allQuestionsAnswered ? (
                 <div className="w-full max-w-md">
                   {!hasAnsweredCurrentQuestion ? (
@@ -208,16 +205,16 @@ export default function QuestionInterface({
                         className="w-full rounded-lg shadow-md overflow-hidden bg-white border border-gray-200"
                         whileHover={{ scale: 1.02 }}
                       >
-                        {/* Search bar */}
+                        {/* user response field */}
                         <div className="flex items-center w-full bg-gray-200 px-4 py-3">
-                          <svg className="w-6 h-6 text-gray-500 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          {/* TODO: Add an icon here other than the search icon */}
+                          {/* <svg className="w-6 h-6 text-gray-500 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="11" cy="11" r="8" />
                             <path d="M21 21l-4.35-4.35" />
-                          </svg>
+                          </svg> */}
                           <span className="text-gray-500">Your answer:</span>
                         </div>
                         
-                        {/* Always expanded textarea */}
                         <div className="w-full">
                           <textarea
                             rows={4}

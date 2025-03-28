@@ -87,13 +87,12 @@ export default function FeedbackButton() {
           </motion.div>
         ) : (
           <motion.button
-            className="bg-yellow-400 text-gray-800 rounded-lg px-6 py-3 shadow-lg hover:bg-yellow-500 transition-colors flex items-center gap-2 opacity-75 hover:opacity-100"
+            className="bg-yellow-400 text-gray-800 rounded-lg px-6 py-3 shadow-lg hover:bg-yellow-500 transition-colors flex items-center gap-2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsOpen(true)}
           >
             <span className="text-xl">💭</span>
-            {/* <span className="font-medium">Feedback</span> */}
           </motion.button>
         )}
       </AnimatePresence>

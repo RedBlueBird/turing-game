@@ -104,13 +104,11 @@ export default function Home() {
 
             <div className="flex flex-col gap-4 w-full max-w-md">
               <ActionButton 
-                icon="❓"
                 text="How To Play"
                 onClick={handleHowToPlay}
               />
               
               <ActionButton 
-                icon="🏆"
                 text="Recent Changes"
                 onClick={handleOpenChangeLog}
               />

@@ -48,7 +48,8 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <div className="text-3xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-3 text-3xl">🏆</span>
+          {/* TODO: Add trophy icon */}
+          {/* <span className="mr-3 text-3xl">🏆</span> */}
           Recent Changes
         </div>
         
