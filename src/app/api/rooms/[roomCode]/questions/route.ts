@@ -17,11 +17,6 @@ export async function GET(
       return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
     }
 
-    // Validate round is a string representing a positive integer
-    if (!/^[1-9]\d*$/.test(round)) {
-      return NextResponse.json({ message: 'Invalid round number' }, { status: 400 });
-    }
-
     // Check if room exists
     const [roomRows]: any = await pool.query(
       'SELECT id, room_state FROM rooms WHERE room_code = ? AND expired_at > NOW()',
