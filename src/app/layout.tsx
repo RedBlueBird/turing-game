@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import FeedbackButton from "@/components/FeedbackButton";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,7 +18,6 @@ export const metadata: Metadata = {
   description: "An online multiplayer game for human who want to see if they are a NPC",
 };
 
-
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode;}>) {
   return (
     <html lang="en">
@@ -25,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{children: React.React
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <FeedbackButton />
       </body>
     </html>
   );
