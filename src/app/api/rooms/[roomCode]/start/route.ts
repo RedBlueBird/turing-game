@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAzureAICompletion } from '@/lib/azure-ai-completion';
 import fakename from '@/data/fakename.json';
-import { shuffle } from '@/lib/util';
+import { shuffle, isValidRoomCode } from '@/lib/util';
 
 export async function POST(
   request: Request,
@@ -13,9 +13,14 @@ export async function POST(
     const roomCode = params.roomCode;
     const { playerId } = await request.json();
     
-    // Validate input
-    if (!playerId) {
-      return NextResponse.json({ message: 'Player ID is required' }, { status: 400 });
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    // Validate player ID
+    if (!playerId || !Number.isInteger(Number(playerId)) || Number(playerId) <= 0) {
+      return NextResponse.json({ message: 'Invalid player ID' }, { status: 400 });
     }
 
     // Check if room exists
@@ -69,7 +74,7 @@ export async function POST(
 
     try {
       // Update room state to in_progress
-      await connection.query(
+      await connection.execute(
         'UPDATE rooms SET room_state = ?, room_round = 1, round_start_time = NOW() WHERE id = ?',
         ['in_progress', room.id]
       );
@@ -84,7 +89,7 @@ export async function POST(
       const caseStatements = playerNameUpdates.map(update => 
         `WHEN id = ${connection.escape(update.id)} THEN ${connection.escape(update.name)}`
       ).join(' ');
-      await connection.query(`
+      await connection.execute(`
         UPDATE players 
         SET fake_name = CASE 
           ${caseStatements}
@@ -95,7 +100,7 @@ export async function POST(
 
       // Insert selected questions into room_questions for round 1
       for (const question of availableQuestionsRows) {
-        await connection.query(
+        await connection.execute(
           'INSERT INTO room_questions (room_id, room_round, question_id) VALUES (?, ?, ?)',
           [room.id, 1, question.id]
         );
@@ -103,7 +108,7 @@ export async function POST(
 
       // Increase the views of each selected question by 1
       for (const question of availableQuestionsRows) {
-        await connection.query(
+        await connection.execute(
           'UPDATE questions SET views = views + 1 WHERE id = ?',
           [question.id]
         );
@@ -128,7 +133,7 @@ export async function POST(
         if (answer.result.length > 200) {
           truncatedAnswer = truncatedAnswer.slice(0, truncatedAnswer.lastIndexOf(' '));
         }
-        await connection.query(
+        await connection.execute(
           'INSERT INTO player_answers (player_id, question_id, content, created_at) VALUES (?, ?, ?, ?)',
           [room.ai_id, answer.questionId, truncatedAnswer, answer.createdAt]
         );
@@ -136,11 +141,11 @@ export async function POST(
 
       // Let AI vote a random player
       const randomPlayerId = playerRows[Math.floor(Math.random() * playerRows.length)].id;
-      await connection.query(
+      await connection.execute(
         'UPDATE players SET votes = votes + 1 WHERE id = ?',
         [randomPlayerId]
       );
-      await connection.query(
+      await connection.execute(
         'UPDATE players SET voted_player_id = ? WHERE id = ?',
         [randomPlayerId, room.ai_id]
       );

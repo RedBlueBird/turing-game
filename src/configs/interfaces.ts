@@ -1,4 +1,6 @@
 // configs/interfaces.ts
+import { ThemeId } from './consts';
+
 export interface PlayerData {
   id: number;
   fakeName: string;
@@ -13,7 +15,7 @@ export interface RoomSettings {
   questionsPerRound: number;
   timePerRound: number;
   timePerVote: number;
-  theme: string;
+  theme: ThemeId;
 }
 
 export interface RoomData {

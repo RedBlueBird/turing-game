@@ -1,6 +1,7 @@
 // app/api/rooms/[roomCode]/leave/route.ts - Delete room or handle player leaving
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isValidRoomCode } from '@/lib/util';
 
 // Used when host deletes the room or when a player leaves
 export async function PATCH(
@@ -15,6 +16,16 @@ export async function PATCH(
     // Validate input
     if (!roomCode || !playerId) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    // Validate player ID
+    if (!playerId || !Number.isInteger(Number(playerId)) || Number(playerId) <= 0) {
+      return NextResponse.json({ message: 'Invalid player ID' }, { status: 400 });
     }
 
     // First, get room information
@@ -48,13 +59,13 @@ export async function PATCH(
       // If the player is the host, delete the entire room
       if (room.host_id === playerId) {
         // Make all players in the room leave
-        await connection.query(
+        await connection.execute(
           'UPDATE players SET leave_time = NOW() WHERE room_id = ?',
           [room.id]
         );
 
         // Make the room expire
-        await connection.query(
+        await connection.execute(
           'UPDATE rooms SET room_state = ?, expired_at = NOW() WHERE id = ?',
           ['completed', room.id]
         );
@@ -65,7 +76,7 @@ export async function PATCH(
       // If the player is not the host, just remove the player
       else {
         // Make the player leave
-        await connection.query(
+        await connection.execute(
           'UPDATE players SET leave_time = NOW() WHERE id = ?',
           [playerId]
         );

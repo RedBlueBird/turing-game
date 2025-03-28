@@ -4,13 +4,20 @@ import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { ResultSetHeader } from 'mysql2';
 import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
+import { 
+  PLAYER_COUNT_OPTIONS, 
+  QUESTIONS_PER_ROUND_OPTIONS, 
+  TIME_OPTIONS, 
+  THEMES,
+  type ThemeId,
+  ROOM_CODE
+} from '@/configs/consts';
 
 // Function to generate a random 4-character room code
 function generateRoomCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Omitting similar looking characters
   let result = '';
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < ROOM_CODE.LENGTH; i++) {
+    result += ROOM_CODE.CHARS.charAt(Math.floor(Math.random() * ROOM_CODE.CHARS.length));
   }
   return result;
 }
@@ -23,6 +30,23 @@ export async function POST(request: Request) {
     // Validate input
     if (!maxPlayers || !questionsPerRound || !timePerRound || !timePerVote || !theme) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Validate against allowed values
+    if (!PLAYER_COUNT_OPTIONS.includes(maxPlayers)) {
+      return NextResponse.json({ message: 'Invalid maxPlayers value' }, { status: 400 });
+    }
+    if (!QUESTIONS_PER_ROUND_OPTIONS.includes(questionsPerRound)) {
+      return NextResponse.json({ message: 'Invalid questionsPerRound value' }, { status: 400 });
+    }
+    if (!TIME_OPTIONS.includes(timePerRound)) {
+      return NextResponse.json({ message: 'Invalid timePerRound value' }, { status: 400 });
+    }
+    if (!TIME_OPTIONS.includes(timePerVote)) {
+      return NextResponse.json({ message: 'Invalid timePerVote value' }, { status: 400 });
+    }
+    if (!THEMES.some(t => t.id === theme)) {
+      return NextResponse.json({ message: 'Invalid theme value' }, { status: 400 });
     }
 
     // Generate a unique room code
@@ -49,7 +73,7 @@ export async function POST(request: Request) {
 
     try {
         // Create the room
-        const [insertRoomResult] = await connection.query(
+        const [insertRoomResult] = await connection.execute(
             'INSERT INTO rooms (room_code, max_players, questions_per_round, time_per_round, time_per_vote, theme, expired_at) VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
             [roomCode, maxPlayers, questionsPerRound, timePerRound, timePerVote, theme]
         ) as [ResultSetHeader, any];
@@ -58,21 +82,21 @@ export async function POST(request: Request) {
         const hostName = "Player 1";
 
         // Add the host as first player
-        const [insertPlayerResult] = await connection.query(
+        const [insertPlayerResult] = await connection.execute(
             'INSERT INTO players (room_id, real_name, leave_time) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
             [roomId, hostName]
         ) as [ResultSetHeader, any];
         const hostId = insertPlayerResult.insertId;
 
         // Add the AI as the second player
-        const [insertAiResult] = await connection.query(
+        const [insertAiResult] = await connection.execute(
           'INSERT INTO players (room_id, real_name, leave_time, is_ai) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), ?)',
           [roomId, "AI Player", true]
         ) as [ResultSetHeader, any];
         const aiId = insertAiResult.insertId;
 
         // Add the host and AI as the host and AI of the room
-        await connection.query(
+        await connection.execute(
             'UPDATE rooms SET host_id = ?, ai_id = ? WHERE id = ?',
             [hostId, aiId, roomId]
         );

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
+import { isValidRoomCode } from '@/lib/util';
 
 export async function GET(
   request: Request,
@@ -11,10 +12,15 @@ export async function GET(
     params = await params;
     const roomCode = params.roomCode;
     
-    // Get includeAI from URL parameters with default value of false
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    // Get parameters from URL
     const { searchParams } = new URL(request.url);
     const includeAI = searchParams.has('includeAI') ? searchParams.get('includeAI') === 'true' : false;
-    const nameType = searchParams.has('nameType') ? searchParams.get('nameType') : 'fake';
+    const nameType = searchParams.has('nameType') ? (searchParams.get('nameType') === 'real' ? 'real' : 'fake') : 'fake';
 
     // Check if room exists
     const [roomRows]: any = await pool.query(

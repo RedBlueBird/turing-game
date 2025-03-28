@@ -1,6 +1,7 @@
 // app/api/rooms/[roomCode]/votes/route.ts
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isValidRoomCode } from '@/lib/util';
 
 // GET endpoint to fetch votes for a round
 export async function GET(
@@ -10,6 +11,11 @@ export async function GET(
   try {
     params = await params;
     const roomCode = params.roomCode;
+
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
 
     // Get room ID first
     const [roomRows]: any = await pool.query(
@@ -93,8 +99,21 @@ export async function POST(
     const roomCode = params.roomCode;
     const { playerId, votedPlayerId } = await request.json();
 
-    if (!playerId || !votedPlayerId) {
-      return NextResponse.json({ message: 'Player ID and voted player ID are required' }, { status: 400 });
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    // Validate player IDs
+    if (!playerId || !votedPlayerId || 
+        !Number.isInteger(Number(playerId)) || Number(playerId) <= 0 ||
+        !Number.isInteger(Number(votedPlayerId)) || Number(votedPlayerId) <= 0) {
+      return NextResponse.json({ message: 'Invalid player IDs' }, { status: 400 });
+    }
+
+    // Additional validation to ensure players are different
+    if (playerId === votedPlayerId) {
+      return NextResponse.json({ message: 'Cannot vote for yourself' }, { status: 400 });
     }
 
     // Get room data
@@ -124,13 +143,13 @@ export async function POST(
 
     try {
         // Update player's voted_player_id to record their vote
-        await connection.query(
+        await connection.execute(
             'UPDATE players SET voted_player_id = ? WHERE id = ?',
             [votedPlayerId, playerId]
         );
 
         // Increment vote count for the voted player
-        await connection.query(
+        await connection.execute(
             'UPDATE players SET votes = votes + 1 WHERE id = ?',
             [votedPlayerId]
         );

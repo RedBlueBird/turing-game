@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isValidRoomCode } from '@/lib/util';
 
 export async function POST(
   request: Request,
@@ -10,9 +11,28 @@ export async function POST(
     const roomCode = params.roomCode;
     const { playerId, questionId, answer } = await request.json();
     
-    // Validate input
+    // Validate input presence
     if (!playerId || !questionId || !answer) {
       return NextResponse.json({ message: 'Player ID, question ID, and answer are required' }, { status: 400 });
+    }
+
+    // Validate integers
+    if (!Number.isInteger(Number(playerId)) || Number(playerId) <= 0) {
+      return NextResponse.json({ message: 'Invalid player ID' }, { status: 400 });
+    }
+
+    if (!Number.isInteger(Number(questionId)) || Number(questionId) <= 0) {
+      return NextResponse.json({ message: 'Invalid question ID' }, { status: 400 });
+    }
+
+    // Validate answer length and type
+    if (typeof answer !== 'string' || answer.length > 200) {
+      return NextResponse.json({ message: 'Answer must be a string with maximum length of 200 characters' }, { status: 400 });
+    }
+    
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
     }
 
     // Check if room exists and is in progress
@@ -65,14 +85,14 @@ export async function POST(
 
     try {
       if (existingAnswerRows.length > 0) {
-        // Update existing answer
-        await connection.query(
+        // Update existing answer using parameterized query
+        await connection.execute(
           'UPDATE player_answers SET content = ? WHERE player_id = ? AND question_id = ?',
           [answer, playerId, questionId]
         );
       } else {
-        // Insert new answer
-        await connection.query(
+        // Insert new answer using parameterized query
+        await connection.execute(
           'INSERT INTO player_answers (player_id, question_id, content) VALUES (?, ?, ?)',
           [playerId, questionId, answer]
         );

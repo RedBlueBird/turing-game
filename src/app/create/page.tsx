@@ -11,18 +11,12 @@ import ActionButton from '@/components/ActionButton';
 import { pageTransitions } from '@/configs/animations';
 import { PlayerData, RoomSettings, StoredData } from '@/configs/interfaces';
 import { ErrorMessage } from '@/components/ErrorMessage';
-
-const PLAYER_COUNT_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
-const QUESTIONS_PER_ROUND_OPTIONS = [1, 2, 3];
-const TIME_OPTIONS = [30, 45, 60, 90, 120, 1200];
-const THEMES = [
-  { id: 'general', label: 'General' },
-  { id: 'quirky', label: 'Quirky' },
-  { id: 'hypotheticals', label: 'Hypothetical' },
-  { id: 'experiences', label: 'Experiences' },
-  { id: 'philosophical', label: 'Philosophical' },
-  { id: 'romantic', label: 'Romantic' },
-];
+import { 
+  PLAYER_COUNT_OPTIONS, 
+  QUESTIONS_PER_ROUND_OPTIONS, 
+  TIME_OPTIONS, 
+  THEMES 
+} from '@/configs/consts';
 
 export default function CreateRoom() {
   const router = useRouter();

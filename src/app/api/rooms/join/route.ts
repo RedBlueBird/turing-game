@@ -4,6 +4,8 @@ import pool from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { ResultSetHeader } from 'mysql2';
 import { PlayerData, RoomData, RoomSettings } from '@/configs/interfaces';
+import { isValidRoomCode } from '@/lib/util';
+
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +15,11 @@ export async function POST(request: Request) {
     // Validate input
     if (!roomCode) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
     }
 
     // Check if room exists
@@ -46,7 +53,7 @@ export async function POST(request: Request) {
       const playerName = "Player " + String(playerRows[0].playerCount+1);
 
       // Add player to the room
-      const [insertPlayerResult] = await connection.query(
+      const [insertPlayerResult] = await connection.execute(
         'INSERT INTO players (room_id, real_name, leave_time) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
         [room.id, playerName]
       ) as [ResultSetHeader, any];

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAzureAICompletion } from '@/lib/azure-ai-completion';
+import { isValidRoomCode } from '@/lib/util';
 
 export async function POST(
   request: Request,
@@ -12,8 +13,14 @@ export async function POST(
     const roomCode = params.roomCode;
     const { playerId } = await request.json();
 
-    if (!playerId) {
-      return NextResponse.json({ message: 'Player ID is required' }, { status: 400 });
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    // Validate player ID
+    if (!playerId || !Number.isInteger(Number(playerId)) || Number(playerId) <= 0) {
+      return NextResponse.json({ message: 'Invalid player ID' }, { status: 400 });
     }
 
     // Get room data
@@ -53,7 +60,7 @@ export async function POST(
       // If game should end (no humans left or AI eliminated)
       if (humanPlayers.length <= 1 || aiPlayer.length === 0) {
         // Update room state to completed
-        await connection.query(
+        await connection.execute(
           'UPDATE rooms SET room_state = "completed" WHERE id = ?',
           [room.id]
         );
@@ -75,31 +82,31 @@ export async function POST(
       }
 
       // Reset votes and voted_player_id for all players in the room
-      await connection.query(
+      await connection.execute(
         'UPDATE players SET votes = 0, voted_player_id = 0 WHERE room_id = ?',
         [room.id]
       );
 
       // Increment round and update start time
-      await connection.query(
+      await connection.execute(
         'UPDATE rooms SET room_round = ?, round_start_time = NOW(), has_eliminated = 0 WHERE id = ?',
         [currentRound + 1, room.id]
       );
 
       // Select random questions for the next round
-      const [themes]: any = await connection.query(
+      const [themes]: any = await connection.execute(
         'SELECT theme FROM rooms WHERE id = ?',
         [room.id]
       );
 
       const theme = themes[0].theme;
-      const [questionsPerRound]: any = await connection.query(
+      const [questionsPerRound]: any = await connection.execute(
         'SELECT questions_per_round FROM rooms WHERE id = ?',
         [room.id]
       );
 
       // Get random questions for the next round
-      const [randomQuestions]: any = await connection.query(
+      const [randomQuestions]: any = await connection.execute(
         `SELECT id FROM questions 
          WHERE theme = ? 
          AND id NOT IN (
@@ -114,7 +121,7 @@ export async function POST(
       // Insert questions for the new round
       const nextRound = currentRound + 1;
       for (const question of randomQuestions) {
-        await connection.query(
+        await connection.execute(
           'INSERT INTO room_questions (room_id, room_round, question_id) VALUES (?, ?, ?)',
           [room.id, nextRound, question.id]
         );
@@ -122,7 +129,7 @@ export async function POST(
 
       // Increase the views of each selected question by 1
       for (const question of randomQuestions) {
-        await connection.query(
+        await connection.execute(
           'UPDATE questions SET views = views + 1 WHERE id = ?',
           [question.id]
         );
@@ -147,7 +154,7 @@ export async function POST(
         if (answer.result.length > 200) {
           truncatedAnswer = truncatedAnswer.slice(0, truncatedAnswer.lastIndexOf(' '));
         }
-        await connection.query(
+        await connection.execute(
           'INSERT INTO player_answers (player_id, question_id, content, created_at) VALUES (?, ?, ?, ?)',
           [room.ai_id, answer.questionId, truncatedAnswer, answer.createdAt]
         );
@@ -155,11 +162,11 @@ export async function POST(
 
       // Let AI vote a random player
       const randomPlayerId = humanPlayers[Math.floor(Math.random() * humanPlayers.length)].id;
-      await connection.query(
+      await connection.execute(
         'UPDATE players SET votes = votes + 1 WHERE id = ?',
         [randomPlayerId]
       );
-      await connection.query(
+      await connection.execute(
         'UPDATE players SET voted_player_id = ? WHERE id = ?',
         [randomPlayerId, room.ai_id]
       );

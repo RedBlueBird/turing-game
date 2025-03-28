@@ -1,3 +1,5 @@
+import { ROOM_CODE } from "@/configs/consts";
+
 /**
  * Shuffles an array using the Fisher-Yates algorithm.
  * Returns a new array with the shuffled elements, leaving the original array unchanged.
@@ -11,4 +13,9 @@ export function shuffle<T>(array: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+export function isValidRoomCode(code: string): boolean {
+  if (code.length !== ROOM_CODE.LENGTH) return false;
+  return code.split('').every(char => ROOM_CODE.CHARS.includes(char));
 } 

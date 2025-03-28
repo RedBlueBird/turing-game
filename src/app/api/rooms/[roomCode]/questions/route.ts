@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isValidRoomCode } from '@/lib/util';
 
 export async function GET(
   request: Request,
@@ -9,8 +10,17 @@ export async function GET(
     params = await params;
     const roomCode = params.roomCode;
     const { searchParams } = new URL(request.url);
-    const round = searchParams.get('round') || '1';
+    const round = searchParams.get('round') || 1;
     
+    // Validate room code format
+    if (!isValidRoomCode(roomCode)) {
+      return NextResponse.json({ message: 'Invalid room code format' }, { status: 400 });
+    }
+
+    if (!round || !Number.isInteger(Number(round)) || Number(round) <= 0) {
+      return NextResponse.json({ message: 'Invalid round number' }, { status: 400 });
+    }
+
     // Check if room exists
     const [roomRows]: any = await pool.query(
       'SELECT id, room_state FROM rooms WHERE room_code = ? AND expired_at > NOW()',
