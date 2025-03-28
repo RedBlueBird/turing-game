@@ -5,7 +5,7 @@
 Turing Game is a real-time multiplayer social deduction game powered by Azure. Players compete in virtual rooms against an AI opponent, answering prompts and voting out the most AI-sounding responses. The game continues until only one human remains or the AI is eliminated, with Azure integration ensuring seamless performance.
 
 ## Demo Video
-[Watch our 3-minute demo on YouTube](https://youtu.be/NZlr5wryXXY)
+[Watch our demo on YouTube](https://youtu.be/NZlr5wryXXY)
 
 ## Demo Website
 [https://turing-game-f0arcebxbsa7a7dp.japaneast-01.azurewebsites.net/](https://turing-game-f0arcebxbsa7a7dp.japaneast-01.azurewebsites.net/)
