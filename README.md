@@ -2,7 +2,7 @@
 *Azure AI Developer Hackathon Entry - Best Azure App Integration Category*
 
 ## Project Description
-Turing Game is a real-time multiplayer social deduction game powered by Azure. Players compete in virtual rooms against an AI opponent, answering prompts and voting out the most AI-sounding responses. The game continues until only one human remains or the AI is eliminated, with Azure integration ensuring seamless performance.
+Turing Game is a real-time multiplayer social deduction game powered by Azure. Players compete in virtual rooms against an AI opponent, answering prompts and voting out the most AI-sounding responses. The game continues until only one human remains or the AI is eliminated, with Azure integration ensuring seamless performance. Developed in VS Code with GitHub Copilot.
 
 ## Demo Video
 [Watch our demo on YouTube](https://youtu.be/NZlr5wryXXY)
@@ -26,6 +26,10 @@ Turing Game is a real-time multiplayer social deduction game powered by Azure. P
 4. **Azure Application Insight**
    - Tracks application performance
    - Monitors user engagement metrics
+
+5. **VS Code and GitHub Copilot**
+   - IDE for the entire development process
+   - Accelerated repetitive code extraction + debugging support
 
 ## Technical Implementation
 - **Frontend**: Tailwind, Next.js, React, TypeScript
