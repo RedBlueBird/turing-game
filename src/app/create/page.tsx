@@ -24,7 +24,7 @@ export default function CreateRoom() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [roomSettings, setRoomSettings] = useState<RoomSettings>({
-    maxPlayers: 4,
+    maxPlayers: 8,
     questionsPerRound: 1,
     timePerRound: 45,
     timePerVote: 30,
