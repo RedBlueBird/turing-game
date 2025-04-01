@@ -60,10 +60,15 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
                 <h3 className="text-xl font-bold text-gray-800">Version {item.version}</h3>
                 <span className="text-sm text-gray-500">{item.date}</span>
               </div>
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm prose-gray dark:prose-invert max-w-none">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeRaw]}
+                  components={{
+                    h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-1" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc pl-5 my-1 text-gray-800 marker:text-gray-800" {...props} />,
+                    li: ({node, ...props}) => <li className="text-gray-800" {...props} />
+                  }}
                 >
                   {item.changes}
                 </ReactMarkdown>

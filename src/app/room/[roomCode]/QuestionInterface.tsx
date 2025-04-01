@@ -218,7 +218,7 @@ export default function QuestionInterface({
                         <div className="w-full">
                           <textarea
                             rows={4}
-                            className="w-full p-4 border-none focus:outline-none focus:ring-0 resize-none"
+                            className="w-full p-4 text-gray-800 border-none focus:outline-none focus:ring-0 resize-none"
                             placeholder="Type your answer here..."
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value)}

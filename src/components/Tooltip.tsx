@@ -11,13 +11,6 @@ interface TooltipProps {
 export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
-  const positions = {
-    top: '-translate-y-full -translate-x-1/2 left-1/2 bottom-[calc(100%+5px)]',
-    bottom: 'translate-y-1 -translate-x-1/2 left-1/2 top-full',
-    left: '-translate-x-full -translate-y-1/2 top-1/2 right-[calc(100%+5px)]',
-    right: 'translate-x-1 -translate-y-1/2 top-1/2 left-full',
-  };
-
   return (
     <div 
       className="relative inline-block"
@@ -34,7 +27,7 @@ export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
             transition={{ duration: 0.1 }}
             className={`absolute z-50`}
           >
-            <div className="bg-gray-800 text-white text-sm rounded-lg shadow-lg p-2 whitespace-nowrap">
+            <div className="bg-gray-800 text-white text-sm rounded-lg shadow-lg p-2 w-64">
               {content}
             </div>
           </motion.div>

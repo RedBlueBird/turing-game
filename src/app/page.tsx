@@ -74,11 +74,11 @@ export default function Home() {
             <link rel="icon" href="/logo.ico" />
           </Head>
           <main className="flex flex-col items-center justify-center w-full flex-1 px-4 sm:px-20 text-center">
-            <h1 className="text-6xl font-bold mb-4 mt-8 text-gray-900">
+            <h1 className="text-5xl lg:text-7xl font-bold mb-4 lg:mt-8 text-gray-900">
               Turing Game
             </h1>
             <p className="text-2xl text-gray-700 mb-12">
-              Social deduction between human & AI
+              Social deduction between Humans vs. AI
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-md">

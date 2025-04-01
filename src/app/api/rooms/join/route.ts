@@ -73,6 +73,7 @@ export async function POST(request: Request) {
         timePerRound: room.time_per_round,
         timePerVote: room.time_per_vote,
         theme: room.theme,
+        mimicRole: room.mimic_role
       }
       const roomData: RoomData = {
         roomId: room.id,

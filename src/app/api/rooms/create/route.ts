@@ -25,10 +25,10 @@ function generateRoomCode(): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { maxPlayers, questionsPerRound, timePerRound, timePerVote, theme } = body;
+    const { maxPlayers, questionsPerRound, timePerRound, timePerVote, theme, mimicRole } = body;
 
-    // Validate input
-    if (!maxPlayers || !questionsPerRound || !timePerRound || !timePerVote || !theme) {
+    // Validate input presence
+    if (!maxPlayers || !questionsPerRound || !timePerRound || !timePerVote || !theme || !mimicRole) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -47,6 +47,10 @@ export async function POST(request: Request) {
     }
     if (!THEMES.some(t => t.id === theme)) {
       return NextResponse.json({ message: 'Invalid theme value' }, { status: 400 });
+    }
+    if (typeof mimicRole !== 'string' || mimicRole.length > 100) {
+      return NextResponse.json({ 
+        message: 'Mimic role must be a string with maximum length of 100 characters'}, { status: 400 });
     }
 
     // Generate a unique room code
@@ -82,8 +86,8 @@ export async function POST(request: Request) {
     try {
         // Create the room
         const [insertRoomResult] = await connection.execute(
-            'INSERT INTO rooms (room_code, max_players, questions_per_round, time_per_round, time_per_vote, theme, expired_at) VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
-            [roomCode, maxPlayers, questionsPerRound, timePerRound, timePerVote, theme]
+            'INSERT INTO rooms (room_code, max_players, questions_per_round, time_per_round, time_per_vote, theme, mimic_role, expired_at) VALUES (?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+            [roomCode, maxPlayers, questionsPerRound, timePerRound, timePerVote, theme, mimicRole]
         ) as [ResultSetHeader, any];
 
         const roomId = insertRoomResult.insertId;
@@ -124,6 +128,7 @@ export async function POST(request: Request) {
             timePerRound: timePerRound,
             timePerVote: timePerVote,
             theme: theme,
+            mimicRole: mimicRole,
         }
         const roomData: RoomData = {
             roomId: roomId,

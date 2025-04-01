@@ -16,6 +16,7 @@ export interface RoomSettings {
   timePerRound: number;
   timePerVote: number;
   theme: ThemeId;
+  mimicRole: string;
 }
 
 export interface RoomData {

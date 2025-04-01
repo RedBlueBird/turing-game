@@ -1,7 +1,12 @@
 [
   {
+    "version": "0.2.0",
+    "date": "April 2, 2025",
+    "changes": "### UX Improvements \n- Added \"Mimic Role\" feature in the game settings. Now you decide which role the AI will pretend as.\n- Added markdown syntax to this \"Recent Changes\" popup.\n- Fixed text color in some places default to white on iOS devices."
+  },
+  {
     "version": "0.1.0",
     "date": "March 28, 2025",
-    "changes": "### Initial Release\n- Core game functionality\n- Room creation and joining\n- Basic gameplay mechanics\n- Question generation system\n- Voting mechanism\n- Results display\n- Feedback system"
+    "changes": "### Initial Release\n- Core game functionality\n- Room creation and joining\n- Question generation system\n- Voting mechanism\n- Results display\n- Feedback system"
   }
 ]

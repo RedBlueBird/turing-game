@@ -13,6 +13,7 @@ CREATE TABLE rooms (
   time_per_round INT DEFAULT 45,
   time_per_vote INT DEFAULT 30,
   theme VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  mimic_role VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Undergraduate student',
   host_id INT DEFAULT 0,
   ai_id INT DEFAULT -1
 );

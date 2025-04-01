@@ -48,7 +48,7 @@ export default function ActionButton({
       whileTap={disabled ? {} : { scale: 0.98 }}
       disabled={disabled}
     >
-      {icon && <span className="mr-4 text-2xl">{icon}</span>}
+      {icon && <span className={`text-2xl ${text || customDisabledText ? 'mr-4' : ''}`}>{icon}</span>}
       <span className="text-2xl font-medium">{disabled && customDisabledText ? customDisabledText : text}</span>
     </motion.button>
   );

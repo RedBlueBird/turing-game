@@ -77,10 +77,10 @@ export default function WaitingInterface({
                 }`}
                 variants={itemTransitions}
               >
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                <div className="w-8 h-8 bg-gray-300 text-gray-800 rounded-full flex items-center justify-center mr-3">
                   {index + 1}
                 </div>
-                <div className="flex-grow font-medium">
+                <div className="flex-grow font-medium text-gray-800">
                   {player.realName}
                   {player.id === roomData?.hostId && (
                     <span className="ml-2 text-xs bg-yellow-400 px-2 py-1 rounded text-gray-800">

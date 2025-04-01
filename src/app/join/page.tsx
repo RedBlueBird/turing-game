@@ -295,9 +295,20 @@ export default function JoinRoom() {
                   onKeyDown={handleKeyDown}
                   onFocus={() => setActiveIndex(index)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className={`w-16 h-16 text-center text-3xl font-bold border-b-4 
+                  className={`w-16 h-16 text-center text-3xl font-bold border-b-4 text-gray-800
                   ${activeIndex === index ? 'border-yellow-400' : 'border-gray-300'} 
                   focus:outline-none focus:border-yellow-400 bg-transparent`}
+                  style={{ 
+                    borderTop: 'none',
+                    borderLeft: 'none', 
+                    borderRight: 'none',
+                    borderBottom: activeIndex === index ? '4px solid #facc15' : '4px solid #d1d5db',
+                    lineHeight: 'normal',
+                    paddingTop: '12px',
+                    paddingBottom: '12px',
+                    boxSizing: 'border-box',
+                    WebkitAppearance: 'none'
+                  }}
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: index * 0.1 }}

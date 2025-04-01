@@ -17,6 +17,8 @@ import {
   TIME_OPTIONS, 
   THEMES 
 } from '@/configs/consts';
+import { Tooltip } from '@/components/Tooltip';
+import rolesData from '@/data/roles.json';
 
 export default function CreateRoom() {
   const router = useRouter();
@@ -28,16 +30,18 @@ export default function CreateRoom() {
     questionsPerRound: 1,
     timePerRound: 45,
     timePerVote: 30,
-    theme: 'general'
+    theme: 'general',
+    mimicRole: 'Undergraduate student'
   });
 
-  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setRoomSettings({
       ...roomSettings,
-      [name]: name === 'theme' ? value : parseInt(value)
+      [name]: name === 'theme' ? value : 
+              name === 'mimicRole' ? value :
+              parseInt(value)
     });
-    console.log(roomSettings);
   };
 
   const handleSubmit = async (e) => {
@@ -99,6 +103,21 @@ export default function CreateRoom() {
     }, 200);
   };
 
+  const getRandomRole = () => {
+    const roles = rolesData.roles;
+    const currentRole = roomSettings.mimicRole;
+    
+    // Filter out the current role
+    const availableRoles = roles.filter(role => role !== currentRole);
+    
+    // Get random role from remaining options
+    const randomIndex = Math.floor(Math.random() * availableRoles.length);
+    setRoomSettings({
+      ...roomSettings,
+      mimicRole: availableRoles[randomIndex]
+    });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
     <AnimatePresence>
@@ -130,7 +149,8 @@ export default function CreateRoom() {
           transition={{ delay: 0.1 }}
         >
           <form>
-            <div className="mb-3">
+            {/* Keep Max Players for future use */}
+            {/* <div className="mb-3">
               <label htmlFor="maxPlayers" className="block text-gray-700 text-lg font-medium mb-1">Max Players</label>
               <select
                 id="maxPlayers"
@@ -143,7 +163,7 @@ export default function CreateRoom() {
                   <option key={num} value={num}>{num} players</option>
                 ))}
               </select>
-            </div>
+            </div> */}
 
             <div className="mb-3">
               <label htmlFor="questionsPerRound" className="block text-gray-700 text-lg font-medium mb-1">Questions/Round</label>
@@ -155,7 +175,7 @@ export default function CreateRoom() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               >
                 {QUESTIONS_PER_ROUND_OPTIONS.map(num => (
-                  <option key={num} value={num}>{num} questions</option>
+                  <option key={num} value={num}>{num} question{num === 1 ? '' : 's'}</option>
                 ))}
               </select>
             </div>
@@ -205,6 +225,50 @@ export default function CreateRoom() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center">
+                  <label htmlFor="mimicRole" className="text-gray-700 text-lg font-medium">
+                    Mimic Role
+                  </label>
+                  <div className="ml-2 h-5 text-gray-400 text-sm">
+                    ({roomSettings.mimicRole.length}/100 characters)
+                  </div>
+                </div>
+                <Tooltip 
+                  content="Type any role you want the AI to act as, or click the dice to get a random suggestion!" 
+                  position="top" 
+                >
+                  <div className="bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center text-gray-800 text-xs">
+                    ?
+                  </div>
+                </Tooltip>
+              </div>
+              <div className="flex">
+                <input
+                  id="mimicRole"
+                  name="mimicRole"
+                  type="text"
+                  value={roomSettings.mimicRole}
+                  onChange={(e) => setRoomSettings({
+                    ...roomSettings,
+                    mimicRole: e.target.value.slice(0, 100)
+                  })}
+                  placeholder="Type here"
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 placeholder-gray-400"
+                  maxLength={100}
+                />
+                <ActionButton 
+                  text=""
+                  icon="🎲"
+                  onClick={getRandomRole}
+                  variant="default"
+                  fullWidth={false}
+                  className="ml-2 h-10 w-10 p-0"
+                />
+              </div>
             </div>
           </form>
         </motion.div>

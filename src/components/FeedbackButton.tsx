@@ -61,8 +61,8 @@ export default function FeedbackButton() {
               {!isSubmitted ? (
                 <>
                   <textarea
-                    className="w-full h-32 p-2 border rounded-lg mb-2 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    placeholder="Share your suggestions or report issues..."
+                    className="w-full h-32 p-2 border rounded-lg mb-2 text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    placeholder="Share your suggestions or report bugs/glitches..."
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     onClick={(e) => e.currentTarget.placeholder = ''}

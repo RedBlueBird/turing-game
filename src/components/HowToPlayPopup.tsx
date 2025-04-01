@@ -40,9 +40,9 @@ const HowToPlayPopup: React.FC<HowToPlayPopupProps> = ({
         </div>
         
         <div className="overflow-y-auto flex-grow mb-8">
-          <ol className="list-decimal list-inside space-y-4 text-lg text-gray-700">
+          <ol className="list-decimal list-inside space-y-4 text-md text-gray-700">
             <li>Join/Create a game room</li>
-            <li>Write funny responses</li>
+            <li>Write funny responses to silly questions</li>
             <li>Vote the most sus player</li>
             <li>Repeat</li>
           </ol>

@@ -326,8 +326,8 @@ export default function RoomPage() {
   // Show game results when game is complete
   if (gameComplete) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center mx-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center text-gray-800">
           <h1 className="text-3xl font-bold mb-6">Game Over!</h1>
           
           {gameResults?.aiEliminated ? (

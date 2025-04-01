@@ -118,7 +118,7 @@ export async function POST(
       let aiAnswers = [];
       let createdAt = new Date();
       for (const question of availableQuestionsRows) {
-        const result = await getAzureAICompletion(question.content);
+        const result = await getAzureAICompletion(question.content, {mimicRole: room.mimic_role});
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: result.status });
         }
