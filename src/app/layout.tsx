@@ -16,6 +16,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Turing Game",
   description: "Social deduction between human & AI",
+  openGraph: {
+    title: "Turing Game",
+    description: "Social deduction between human & AI",
+    images: [
+      {
+        url: "/robot-face.png",
+        width: 400,
+        height: 400,
+        alt: "Minimalist robot face for Turing Game"
+      }
+    ],
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode;}>) {
