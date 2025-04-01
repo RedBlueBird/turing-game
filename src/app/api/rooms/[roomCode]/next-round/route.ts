@@ -25,7 +25,7 @@ export async function POST(
 
     // Get room data
     const [roomRows]: any = await pool.query(
-      'SELECT id, host_id, room_round FROM rooms WHERE room_code = ? AND expired_at > NOW()',
+      'SELECT * FROM rooms WHERE room_code = ? AND expired_at > NOW()',
       [roomCode]
     );
 
@@ -81,11 +81,15 @@ export async function POST(
         }, { status: 200 });
       }
 
+      console.log("------------1-------");
+
       // Reset votes and voted_player_id for all players in the room
       await connection.execute(
         'UPDATE players SET votes = 0, voted_player_id = 0 WHERE room_id = ?',
         [room.id]
       );
+
+      console.log("------------2-------");
 
       // Increment round and update start time
       await connection.execute(
@@ -93,21 +97,11 @@ export async function POST(
         [currentRound + 1, room.id]
       );
 
-      // Select random questions for the next round
-      const [themes]: any = await connection.execute(
-        'SELECT theme FROM rooms WHERE id = ?',
-        [room.id]
-      );
-
-      const theme = themes[0].theme;
-      const [questionsPerRound]: any = await connection.execute(
-        'SELECT questions_per_round FROM rooms WHERE id = ?',
-        [room.id]
-      );
+      console.log("------------3-------");  
 
       // Get random questions for the next round
-      const [randomQuestions]: any = await connection.execute(
-        `SELECT id FROM questions 
+      const [randomQuestions]: any = await connection.query(
+        `SELECT * FROM questions 
          WHERE theme = ? 
          AND id NOT IN (
            SELECT question_id FROM room_questions 
@@ -115,8 +109,10 @@ export async function POST(
          )
          ORDER BY RAND() 
          LIMIT ?`,
-        [theme, room.id, questionsPerRound[0].questions_per_round]
+        [room.theme, room.id, room.questions_per_round]
       );
+
+      console.log("------------4-------");
 
       // Insert questions for the new round
       const nextRound = currentRound + 1;
@@ -127,6 +123,8 @@ export async function POST(
         );
       }
 
+      console.log("------------5-------");
+
       // Increase the views of each selected question by 1
       for (const question of randomQuestions) {
         await connection.execute(
@@ -134,6 +132,8 @@ export async function POST(
           [question.id]
         );
       }
+
+      console.log("------------6-------");
 
       // Insert AI answers into player_answers for the next round 
       let aiAnswers = [];
@@ -160,16 +160,23 @@ export async function POST(
         );
       }
 
+      console.log("------------7-------");
+
       // Let AI vote a random player
       const randomPlayerId = humanPlayers[Math.floor(Math.random() * humanPlayers.length)].id;
       await connection.execute(
         'UPDATE players SET votes = votes + 1 WHERE id = ?',
         [randomPlayerId]
       );
+
+      console.log("------------8-------");
+
       await connection.execute(
         'UPDATE players SET voted_player_id = ? WHERE id = ?',
         [randomPlayerId, room.ai_id]
       );
+
+      console.log("------------9-------");
 
       await connection.commit();
 

@@ -281,6 +281,8 @@ export default function RoomPage() {
     
     try {
       setIsLoading(true);
+      console.log("--------------------------ffff--");
+
       const response = await fetch(`/api/rooms/${roomCode}/next-round`, {
         method: 'POST',
         headers: {
@@ -298,6 +300,8 @@ export default function RoomPage() {
       
       // Next round started successfully, switch to question interface
       setInterfaceState(InterfaceState.Question);
+      console.log("--------------------------/////--");
+
     } catch (err) {
       const errorMsg = "Failed to start next round" + (err.message? (": " + err.message) : "");
       setError(errorMsg);
@@ -355,6 +359,9 @@ export default function RoomPage() {
   }
 
   const canStartGame = (playerData?.id === roomData?.hostId) && (roomData?.players?.length >= 2);
+
+  console.log(interfaceState);
+  console.log("----------------------------");
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">

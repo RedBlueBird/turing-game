@@ -3,9 +3,11 @@ import mysql from 'mysql2/promise';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Create a connection pool
 // const serverCa = fs.readFileSync(path.join(process.cwd(), 'ssl', 'DigiCertGlobalRootG2.crt.pem'), "utf8");
-const pool = mysql.createPool({
+
+
+// Define the pool configuration
+const poolConfig = {
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
@@ -17,6 +19,17 @@ const pool = mysql.createPool({
     // maxVersion: 'TLSv1.3'
   },
   timezone: 'Z',
-});
+};
 
-export default pool; 
+// Create a pool instance
+let pool = mysql.createPool(poolConfig);
+
+// Function to reset the pool
+export const resetPool = async () => {
+  await pool.end();
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  pool = mysql.createPool(poolConfig);
+};
+
+// Export both pool and resetPool
+export { pool as default }; 

@@ -52,8 +52,10 @@ export async function POST(request: Request) {
     // Generate a unique room code
     let roomCode;
     let isUnique = false;
-    
-    while (!isUnique) {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 100;
+
+    while (!isUnique && attempts < MAX_ATTEMPTS) {
       roomCode = generateRoomCode();
       
       // Check if code already exists
@@ -65,6 +67,12 @@ export async function POST(request: Request) {
       if (rows.length === 0) {
         isUnique = true;
       }
+
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return NextResponse.json({ message: 'Failed to generate a unique room code, try again later' }, { status: 500 });
     }
 
     // Begin transaction with connection
