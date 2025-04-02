@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+import { Tooltip } from 'react-tooltip';
 
 import ActionButton from '@/components/ActionButton';
 import { pageTransitions } from '@/configs/animations';
@@ -17,7 +18,6 @@ import {
   TIME_OPTIONS, 
   THEMES 
 } from '@/configs/consts';
-import { Tooltip } from '@/components/Tooltip';
 import rolesData from '@/data/roles.json';
 
 export default function CreateRoom() {
@@ -237,14 +237,17 @@ export default function CreateRoom() {
                     ({roomSettings.mimicRole.length}/100 characters)
                   </div>
                 </div>
-                <Tooltip 
-                  content="Type any role you want the AI to act as, or click the dice to get a random suggestion!" 
-                  position="top" 
+                <div 
+                  className="bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center text-gray-800 text-xs cursor-help"
+                  data-tooltip-id="mimic-role-tooltip"
+                  data-tooltip-content="Type any role you want the AI to act as, or click the dice to get a random suggestion!"
                 >
-                  <div className="bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center text-gray-800 text-xs">
-                    ?
-                  </div>
-                </Tooltip>
+                  ?
+                </div>
+                <Tooltip 
+                  id="mimic-role-tooltip" 
+                  style={{ maxWidth: '200px', whiteSpace: 'normal' }}
+                />
               </div>
               <div className="flex">
                 <input

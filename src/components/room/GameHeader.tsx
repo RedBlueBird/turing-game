@@ -14,7 +14,7 @@ export function GameHeader({ title, round, remainingTime, subtitle }: GameHeader
 
   return (
     <div className="w-full text-center mb-8 mt-8">
-      <h1 className="text-6xl font-bold mb-4 text-gray-900">
+      <h1 className="text-5xl lg:text-7xl font-bold mb-4 text-gray-900">
         {title}
       </h1>
       <p className="text-2xl text-gray-700 mb-4">

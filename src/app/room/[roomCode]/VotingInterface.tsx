@@ -7,7 +7,7 @@ import { PlayerData, RoomData, InterfaceState } from '@/configs/interfaces';
 import { GameHeader } from '@/components/room/GameHeader';
 import { AnswersPanel } from '@/components/room/AnswersPanel';
 import { ErrorMessage } from '@/components/ErrorMessage';
-import { Tooltip } from '@/components/Tooltip';
+import { Tooltip } from 'react-tooltip';
 
 interface VotingInterfaceProps {
   roomData: RoomData;
@@ -289,22 +289,19 @@ export default function VotingInterface({
                                     ))
                                   ) : (
                                     // Show compact version with tooltip if more than 2
-                                    <Tooltip 
-                                      content={
-                                        <div className="p-2">
-                                          <p className="font-semibold mb-1">Voters:</p>
-                                          <ul className="space-y-1">
-                                            {playerVotes.map((vote, idx) => (
-                                              <li key={idx}>{vote.voterName}</li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      }
-                                    >
-                                      <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full cursor-help">
+                                    <>
+                                      <span 
+                                        className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full cursor-help"
+                                        data-tooltip-id={`votes-tooltip-${player.id}`}
+                                        data-tooltip-content={`Voters: ${playerVotes.map(vote => vote.voterName).join(', ')}`}
+                                      >
                                         +{playerVotes.length}
                                       </span>
-                                    </Tooltip>
+                                      <Tooltip 
+                                        id={`votes-tooltip-${player.id}`}
+                                        style={{ maxWidth: '200px', whiteSpace: 'normal' }}
+                                      />
+                                    </>
                                   )}
                                 </div>
                               )}

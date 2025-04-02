@@ -28,6 +28,7 @@ body {
 /* For iOS and Safari-specific fixes */
 @supports (-webkit-touch-callout: none) {
   /* Select element use white text by default */
+  input,
   select,
   select option {
     color: #1f2937 !important;
