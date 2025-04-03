@@ -145,7 +145,7 @@ export async function POST(
         }
         // Add random seconds to createdAt to mimic human typing
         let threshold = result.result.length / 10;
-        createdAt.setSeconds(createdAt.getSeconds() + Math.floor(Math.random() * (room.time_per_round / room.questions_per_round - threshold) + threshold));
+        createdAt.setSeconds(createdAt.getSeconds() + Math.floor(Math.random() * (Math.min(room.time_per_round / room.questions_per_round, 60) - threshold) + threshold));
         aiAnswers.push({result: result.result, questionId: question.id, createdAt: createdAt});
       }
       for (const answer of aiAnswers) {

@@ -1,12 +1,13 @@
 'use client'
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { pageTransitions } from '@/configs/animations';
 import { PlayerData, QuestionData, RoomData } from '@/configs/interfaces';
 import { GameHeader } from '@/components/room/GameHeader';
 import { AnswersPanel } from '@/components/room/AnswersPanel';
 import { ErrorMessage } from '@/components/ErrorMessage';
+import { QuestionAnswerPanel } from '@/components/room/QuestionAnswerPanel';
 
 interface QuestionInterfaceProps {
   roomData: RoomData;
@@ -15,14 +16,14 @@ interface QuestionInterfaceProps {
   onTimeUp?: () => void;
 }
 
-export default function QuestionInterface({ 
-  roomData, 
-  playerData, 
+export default function QuestionInterface({
+  roomData,
+  playerData,
   onAnswerSubmit,
   onTimeUp
 }: QuestionInterfaceProps) {
   const router = useRouter();
-  
+
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState('');
@@ -31,21 +32,45 @@ export default function QuestionInterface({
   const [remainingTime, setRemainingTime] = useState<number>(120);
   const [answeredQuestions, setAnsweredQuestions] = useState<number[]>([]);
   const [isFocused, setIsFocused] = useState(false);
+  
+  // Mobile swipe mechanics
+  const [isMobile, setIsMobile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [activePanelIndex, setActivePanelIndex] = useState(0); // 0 = Question Panel, 1 = Answers Panel
+  const constraintsRef = useRef(null);
 
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
+  // Fetch questions useEffect
   useEffect(() => {
     // Fetch questions for the current round
     const fetchQuestions = async () => {
       try {
         const response = await fetch(`/api/rooms/${roomData.roomCode}/questions?round=${roomData.roomRound}`);
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to load questions');
         }
-        
+
         const data = await response.json();
-        setQuestions(data.questions);
-        
+        // Ensure playerAnswers is always an array
+        const questionsWithAnswers = data.questions.map((q: QuestionData) => ({
+            ...q,
+            playerAnswers: q.playerAnswers || []
+        }));
+        setQuestions(questionsWithAnswers);
+
         // Calculate remaining time
         if (roomData.roundStartTime) {
           const startTime = new Date(roomData.roundStartTime).getTime();
@@ -54,89 +79,122 @@ export default function QuestionInterface({
           const currentTime = new Date().getTime();
           setRemainingTime(Math.max(0, Math.floor((endTime - currentTime) / 1000)));
         }
-      } catch (err) {
-        const errorMsg = "Failed to load questions" + (err.message? (": " + err.message) : "");
+      } catch (err: any) {
+        const errorMsg = "Failed to load questions" + (err.message ? (": " + err.message) : "");
         console.error(errorMsg);
         setError(errorMsg);
       }
     };
 
     fetchQuestions();
-    
+
     // Set up polling to refresh questions and answers
     const intervalId = setInterval(fetchQuestions, 3000);
-    
+
     // Clean up intervals on unmount
     return () => {
       clearInterval(intervalId);
     };
   }, [roomData.roomCode, roomData.roomRound, roomData.roundStartTime, roomData.settings.timePerRound]);
 
-  // Separate useEffect for the timer countdown
+  // Timer countdown useEffect
   useEffect(() => {
-    const timerId = setInterval(() => {
-      setRemainingTime(prevTime => {
-        if (prevTime <= 1) {
-          clearInterval(timerId);
-          return 0;
-        }
-        return prevTime - 1;
-      });
-    }, 1000);
-    
-    return () => {
-      clearInterval(timerId);
-    };
-  }, [roomData.roundStartTime, roomData.settings.timePerRound]);
+    let timerId: NodeJS.Timeout | null = null;
+    if (remainingTime > 0) {
+        timerId = setInterval(() => {
+          setRemainingTime(prevTime => {
+            if (prevTime <= 1) {
+              if (timerId) clearInterval(timerId);
+              return 0;
+            }
+            return prevTime - 1;
+          });
+        }, 1000);
+    } else {
+        setRemainingTime(0);
+    }
 
-  // Separate useEffect to handle the onTimeUp callback
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
+  }, [remainingTime]);
+
+  // Handle time up callback
   useEffect(() => {
     if (remainingTime === 0 && onTimeUp) {
       onTimeUp();
     }
   }, [remainingTime, onTimeUp]);
 
+  // Swipe gesture handlers
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+  
+  const handleDrag = (e: any, info: any) => {
+    setDragX(info.offset.x);
+  };
+  
+  const handleDragEnd = (e: any, info: any) => {
+    setIsDragging(false);
+    const threshold = 50; // minimum distance required for a swipe
+    
+    if (info.offset.x < -threshold && activePanelIndex === 0) {
+      // Swiped left, go to answers panel
+      setActivePanelIndex(1);
+    } else if (info.offset.x > threshold && activePanelIndex === 1) {
+      // Swiped right, go to question panel
+      setActivePanelIndex(0);
+    }
+    
+    setDragX(0);
+  };
+
   const handleSubmit = async () => {
     if (!answer.trim()) {
       setError('Please enter an answer');
       return;
     }
-    
+
     if (isSubmitting) return;
-    
+
     try {
       setIsSubmitting(true);
       setError('');
-      
+
       if (!questions[currentQuestionIndex]) {
         throw new Error('Question not found');
       }
-      
+
       await onAnswerSubmit(questions[currentQuestionIndex].id, answer);
-      
+
       // Add to answered questions
       setAnsweredQuestions(prev => [...prev, questions[currentQuestionIndex].id]);
-      
+
       // Clear answer
       setAnswer('');
       setIsFocused(false);
-      
-      // Move to next question if available
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+
+      // Find the next unanswered question index
+      let nextIndex = -1;
+      for (let i = 0; i < questions.length; i++) {
+          const questionId = questions[i].id;
+          if (!answeredQuestions.includes(questionId) && !(questions[i].playerAnswers?.some(a => a.playerId === playerData.id))) {
+              nextIndex = i;
+              break;
+          }
       }
-    } catch (err) {
-      setError('Failed to submit answer');
+
+      // Move to the next unanswered question if available
+      if (nextIndex !== -1) {
+          setCurrentQuestionIndex(nextIndex);
+      }
+    } catch (err: any) {
+      setError('Failed to submit answer: ' + err.message);
       console.error(err);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   const handleNextQuestion = () => {
@@ -151,131 +209,176 @@ export default function QuestionInterface({
     }
   };
 
-  const allQuestionsAnswered = answeredQuestions.length === questions.length;
-  const hasMultipleQuestions = questions.length > 1;
-  const hasAnsweredCurrentQuestion = questions.length > 0 && 
-    questions[currentQuestionIndex]?.playerAnswers.some(a => a.playerId === playerData.id);
+  const currentQuestion = questions[currentQuestionIndex];
+  const allQuestionsAnsweredOrSubmitted = questions.every(q =>
+      answeredQuestions.includes(q.id) || q.playerAnswers?.some(a => a.playerId === playerData.id)
+  );
+  const hasAnsweredCurrentQuestion = currentQuestion?.playerAnswers?.some(a => a.playerId === playerData.id) || answeredQuestions.includes(currentQuestion?.id);
+
+  // Calculate positions based on drag for mobile panels
+  const calculatePanelPosition = (index: number) => {
+    if (index === activePanelIndex) {
+      return dragX;
+    } else if (index === 0 && activePanelIndex === 1) {
+      return -window.innerWidth + dragX;
+    } else if (index === 1 && activePanelIndex === 0) {
+      return window.innerWidth + dragX;
+    }
+    return 0;
+  };
 
   return (
-    <motion.div 
+    <motion.div
       key="question-interface"
       initial="initial"
       animate="enter"
       exit="exit"
       variants={pageTransitions}
-      className="flex flex-col items-center w-full min-h-screen bg-gray-100 p-4"
+      className="flex flex-col w-full h-screen bg-gray-100 p-4 overflow-hidden"
     >
-      <GameHeader 
-        title="Turing Game"
-        round={roomData.roomRound}
-        remainingTime={remainingTime}
-      />
-      
-      <div className="flex flex-col-reverse md:flex-row w-full max-w-6xl gap-6 flex-grow mb-4" style={{ minHeight: "calc(100vh - 220px)", height: "auto" }}>
-        <AnswersPanel
-          questions={questions}
-          currentQuestionIndex={currentQuestionIndex}
-          playerData={playerData}
-          onPrevQuestion={handlePrevQuestion}
-          onNextQuestion={handleNextQuestion}
-          className="flex-shrink-0"
+      {/* Game Header */}
+      <div className="flex-shrink-0">
+        <GameHeader
+          title="Turing Game"
+          round={roomData.roomRound}
+          remainingTime={remainingTime}
         />
-        
-        {/* Right panel specific to QuestionInterface */}
-        <div className="w-full md:w-3/5 flex flex-col">
-          <div className="p-6 flex flex-col h-full">
-            {questions.length > 0 ? (
-              <div className="mb-auto">
-                <h2 className="text-4xl font-bold mb-4 text-gray-900">
-                  {questions[currentQuestionIndex]?.content || 'Loading question...'}
-                </h2>
-              </div>
-            ) : (
-              <div className="text-center text-gray-500 py-8">Loading questions...</div>
-            )}
-            
-            <ErrorMessage message={error} />
-            
-            <div className="flex-grow flex items-center justify-center">
-              {questions.length > 0 && !allQuestionsAnswered ? (
-                <div className="w-full max-w-md">
-                  {!hasAnsweredCurrentQuestion ? (
-                    <motion.div className="flex flex-col items-center mx-auto w-full">
-                      <motion.div 
-                        className="w-full rounded-lg shadow-md overflow-hidden bg-white border border-gray-200"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        {/* user response field */}
-                        <div className="flex items-center w-full bg-gray-200 px-4 py-3">
-                          {/* TODO: Add an icon here other than the search icon */}
-                          {/* <svg className="w-6 h-6 text-gray-500 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <path d="M21 21l-4.35-4.35" />
-                          </svg> */}
-                          <span className="text-gray-500">Your answer:</span>
-                        </div>
-                        
-                        <div className="w-full">
-                          <textarea
-                            rows={4}
-                            className="w-full p-4 text-gray-800 border-none focus:outline-none focus:ring-0 resize-none"
-                            placeholder="Type your answer here..."
-                            value={answer}
-                            onChange={(e) => setAnswer(e.target.value)}
-                            onFocus={() => setIsFocused(true)}
-                            maxLength={200}
-                          />
-                          <div className="flex justify-between items-center w-full px-4 py-2 bg-white">
-                            <p className="text-sm text-gray-500">
-                              {answer.length}/200 characters
-                            </p>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={handleSubmit}
-                              disabled={isSubmitting || !answer.trim()}
-                              className={`px-6 py-2 rounded-full font-medium ${
-                                isSubmitting || !answer.trim() 
-                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                  : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
-                              }`}
-                            >
-                              {isSubmitting ? "Submitting..." : "Submit"}
-                            </motion.button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  ) : (
-                    <div className="text-center py-6 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm">
-                      <h3 className="text-xl font-bold text-yellow-600 mb-2">
-                        You've already answered this question
-                      </h3>
-                      <p className="text-gray-700">
-                        Use the navigation below to move to another question or wait for other players.
-                      </p>
-                    </div>
-                  )}
+      </div>
+
+      {/* Main Content Area */}
+      {isMobile ? (
+        // Mobile View with Swipe
+        <div className="flex-1 relative overflow-hidden" ref={constraintsRef}>
+          <motion.div
+            className="absolute inset-0"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragStart={handleDragStart}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            style={{ touchAction: "pan-y" }}
+          >
+            {/* Panel Container */}
+            <div className="w-full h-full relative">
+              {/* Question Panel */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-full flex items-start justify-center"
+                initial={false}
+                animate={{
+                  x: isDragging 
+                    ? calculatePanelPosition(0)
+                    : (activePanelIndex === 0 ? 0 : -window.innerWidth),
+                  opacity: activePanelIndex === 0 || isDragging ? 1 : 0.8,
+                  scale: activePanelIndex === 0 || isDragging ? 1 : 0.95,
+                }}
+                transition={{
+                  x: { 
+                    type: "spring", 
+                    stiffness: 280, 
+                    damping: 26,
+                    duration: 0.7 
+                  },
+                  opacity: { duration: 0.4 },
+                  scale: { duration: 0.4 }
+                }}
+                style={{ zIndex: activePanelIndex === 0 ? 10 : 5 }}
+              >
+                {/* Question Panel Content */}
+                <div className="w-full h-full md:h-full flex flex-col p-4 overflow-y-auto">
+                  <QuestionAnswerPanel
+                    currentQuestion={currentQuestion}
+                    answer={answer}
+                    isSubmitting={isSubmitting}
+                    error={error}
+                    hasAnsweredCurrentQuestion={hasAnsweredCurrentQuestion}
+                    allQuestionsAnsweredOrSubmitted={allQuestionsAnsweredOrSubmitted}
+                    onAnswerChange={(value) => setAnswer(value)}
+                    onSubmit={handleSubmit}
+                  />
                 </div>
-              ) : allQuestionsAnswered ? (
-                <div className="text-center py-8 bg-white rounded-lg shadow-md p-6 max-w-md w-full">
-                  <h3 className="text-2xl font-bold text-green-600 mb-4">
-                    All questions answered!
-                  </h3>
-                  <p className="text-gray-700 mb-6">
-                    Waiting for other players to finish or the timer to run out.
-                  </p>
-                  <div className="flex justify-center">
-                    <div className="bg-gray-200 rounded-full h-4 w-full max-w-md overflow-hidden">
-                      <div className="bg-green-500 h-4 rounded-full w-full"></div>
-                    </div>
-                  </div>
+              </motion.div>
+
+              {/* Answers Panel */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-full flex items-start justify-center"
+                initial={false}
+                animate={{
+                  x: isDragging 
+                    ? calculatePanelPosition(1)
+                    : (activePanelIndex === 1 ? 0 : window.innerWidth),
+                  opacity: activePanelIndex === 1 || isDragging ? 1 : 0.8,
+                  scale: activePanelIndex === 1 || isDragging ? 1 : 0.95,
+                }}
+                transition={{
+                  x: { 
+                    type: "spring", 
+                    stiffness: 280, 
+                    damping: 26,
+                    duration: 0.7 
+                  },
+                  opacity: { duration: 0.4 },
+                  scale: { duration: 0.4 }
+                }}
+                style={{ zIndex: activePanelIndex === 1 ? 10 : 5 }}
+              >
+                {/* Answers Panel Content */}
+                <div className="w-full h-full p-4">
+                  <AnswersPanel
+                    questions={questions}
+                    currentQuestionIndex={currentQuestionIndex}
+                    playerData={playerData}
+                    onPrevQuestion={handlePrevQuestion}
+                    onNextQuestion={handleNextQuestion}
+                    className="h-full"
+                  />
                 </div>
-              ) : null}
+              </motion.div>
             </div>
+          </motion.div>
+
+          {/* Panel Indicators */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-20">
+            <div 
+              className={`h-2 w-8 rounded-full ${activePanelIndex === 0 ? 'bg-yellow-400' : 'bg-gray-300'}`}
+              onClick={() => setActivePanelIndex(0)}
+            />
+            <div 
+              className={`h-2 w-8 rounded-full ${activePanelIndex === 1 ? 'bg-yellow-400' : 'bg-gray-300'}`}
+              onClick={() => setActivePanelIndex(1)}
+            />
           </div>
         </div>
-      </div>
+      ) : (
+        // Desktop View (Original Layout)
+        <div className="flex flex-col-reverse md:flex-row w-full max-w-6xl mx-auto gap-4 flex-1 overflow-hidden min-h-0">
+          {/* Left Panel (AnswersPanel) */}
+          <div className="w-full md:w-2/5 flex-shrink-0 md:h-full min-h-0">
+            <AnswersPanel
+              questions={questions}
+              currentQuestionIndex={currentQuestionIndex}
+              playerData={playerData}
+              onPrevQuestion={handlePrevQuestion}
+              onNextQuestion={handleNextQuestion}
+              className="h-full"
+            />
+          </div>
+
+          {/* Right Panel (Question Interface Details) */}
+          <div className="w-full md:w-3/5 md:h-full flex flex-col min-h-0">
+            <QuestionAnswerPanel
+              currentQuestion={currentQuestion}
+              answer={answer}
+              isSubmitting={isSubmitting}
+              error={error}
+              hasAnsweredCurrentQuestion={hasAnsweredCurrentQuestion}
+              allQuestionsAnsweredOrSubmitted={allQuestionsAnsweredOrSubmitted}
+              onAnswerChange={(value) => setAnswer(value)}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

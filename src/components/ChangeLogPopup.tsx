@@ -65,7 +65,7 @@ const ChangeLogPopup: React.FC<ChangeLogPopupProps> = ({
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeRaw]}
                   components={{
-                    h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-1" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-gray-800 mb-1" {...props} />,
                     ul: ({node, ...props}) => <ul className="list-disc pl-5 my-1 text-gray-800 marker:text-gray-800" {...props} />,
                     li: ({node, ...props}) => <li className="text-gray-800" {...props} />
                   }}

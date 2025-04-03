@@ -1,13 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { pageTransitions, containerTransitions, itemTransitions } from '@/configs/animations';
 import { PlayerData, RoomData, InterfaceState } from '@/configs/interfaces';
 import { GameHeader } from '@/components/room/GameHeader';
 import { AnswersPanel } from '@/components/room/AnswersPanel';
-import { ErrorMessage } from '@/components/ErrorMessage';
-import { Tooltip } from 'react-tooltip';
+import { VotingPanel } from '@/components/room/VotingPanel';
 
 interface VotingInterfaceProps {
   roomData: RoomData;
@@ -52,6 +51,24 @@ export default function VotingInterface({
   const [votes, setVotes] = useState<VoteData[]>([]);
   const [roundComplete, setRoundComplete] = useState(false);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<number>(0);
+  
+  // Mobile swipe mechanics
+  const [isMobile, setIsMobile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [activePanelIndex, setActivePanelIndex] = useState(0); // 0 = Voting Panel, 1 = Answers Panel
+  const constraintsRef = useRef(null);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   useEffect(() => {
     // Fetch questions and answers for the current round
@@ -98,7 +115,7 @@ export default function VotingInterface({
           const endTime = startTime + timePerVote;
           setRemainingTime(Math.max(0, Math.floor((endTime - currentTime) / 1000)));
         }
-      } catch (err) {
+      } catch (err: any) {
         const errorMsg = "Failed to load voting data" + (err.message? (": " + err.message) : "");
         console.error(errorMsg);
         setError(errorMsg);
@@ -151,6 +168,30 @@ export default function VotingInterface({
     }
   }, [roundComplete, remainingTime]);
 
+  // Swipe gesture handlers
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+  
+  const handleDrag = (e: any, info: any) => {
+    setDragX(info.offset.x);
+  };
+  
+  const handleDragEnd = (e: any, info: any) => {
+    setIsDragging(false);
+    const threshold = 50; // minimum distance required for a swipe
+    
+    if (info.offset.x < -threshold && activePanelIndex === 0) {
+      // Swiped left, go to answers panel
+      setActivePanelIndex(1);
+    } else if (info.offset.x > threshold && activePanelIndex === 1) {
+      // Swiped right, go to voting panel
+      setActivePanelIndex(0);
+    }
+    
+    setDragX(0);
+  };
+
   const handleVote = async (playerId: number) => {
     if (votedPlayerId !== null || isSubmitting) return;
     
@@ -197,6 +238,18 @@ export default function VotingInterface({
     }
   };
 
+  // Calculate positions based on drag for mobile panels
+  const calculatePanelPosition = (index: number) => {
+    if (index === activePanelIndex) {
+      return dragX;
+    } else if (index === 0 && activePanelIndex === 1) {
+      return -window.innerWidth + dragX;
+    } else if (index === 1 && activePanelIndex === 0) {
+      return window.innerWidth + dragX;
+    }
+    return 0;
+  };
+
   const hasMultipleQuestions = questions.length > 1;
   const getVotesForPlayer = (playerId: number) => {
     return votes.filter(vote => vote.votedPlayerId === playerId);
@@ -204,183 +257,160 @@ export default function VotingInterface({
 
   return (
     <motion.div 
-      key="question-interface"
+      key="voting-interface"
       initial="initial"
       animate="enter"
       exit="exit"
       variants={pageTransitions}
-      className="flex flex-col items-center w-full min-h-screen bg-gray-100 p-4"
+      className="flex flex-col w-full h-screen bg-gray-100 p-4 overflow-hidden"
     >      
-      <GameHeader 
-        title="Voting Time"
-        round={roomData.roomRound}
-        remainingTime={remainingTime}
-        subtitle="Vote for the player you think is the AI"
-      />
-      
-      <div className="flex flex-col-reverse md:flex-row w-full max-w-6xl gap-6 flex-grow mb-4" style={{ minHeight: "calc(100vh - 260px)", height: "auto" }}>
-        <AnswersPanel
-          questions={questions}
-          currentQuestionIndex={currentQuestionIndex}
-          playerData={playerData}
-          onPrevQuestion={handlePrevQuestion}
-          onNextQuestion={handleNextQuestion}
-          className="flex-shrink-0"
+      {/* Game Header */}
+      <div className="flex-shrink-0">
+        <GameHeader 
+          title="Voting Time"
+          round={roomData.roomRound}
+          remainingTime={remainingTime}
         />
-        
-        {/* Right Panel - Voting area */}
-        <div className="w-full md:w-3/5 flex flex-col">
-          <div className="p-6 flex flex-col bg-white rounded-lg shadow-md h-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {roundComplete ? "Voting Results" : "Vote Who Is AI"}
-            </h2>
-            
-            <ErrorMessage message={error} />
-            
-            {/* Voting area */}
-            <div className="flex-grow overflow-y-auto">
-              {roomData.players && roomData.players.length > 0 ? (
-                <div className="space-y-4">
-                  {roomData.players
-                    .filter(player => !player.isLost) // Only show players still in the game
-                    .sort((a, b) => (a.fakeName || '').localeCompare(b.fakeName || '')) // Sort alphabetically by fakeName
-                    .map((player, index) => {
-                      const playerVotes = getVotesForPlayer(player.id);
-                      const isCurrentPlayer = (player.id === playerData.id);
-                      const isEliminated = (eliminatedPlayer === player.id);
-                      
-                      return (
-                        <motion.div
-                          key={player.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className={`${
-                            isCurrentPlayer ? 'bg-yellow-100' : 
-                            isEliminated ? 'bg-red-100' : 'bg-gray-50'
-                          } rounded-lg p-4 shadow-sm`}
-                        >
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                            <div className="flex items-center mb-2 md:mb-0">
-                              <span className="font-medium text-gray-800 mr-2">
-                                {player.fakeName || 'Unknown'}
-                                {isCurrentPlayer && " (You)"}
-                              </span>
-                              {isEliminated && (
-                                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                  Eliminated
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-col md:flex-row items-start md:items-center">
-                              {/* Votes display */}
-                              {playerVotes.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mr-4 mb-2 md:mb-0">
-                                  {playerVotes.length <= 2 ? (
-                                    // Show individual votes if 2 or fewer
-                                    playerVotes.map((vote, voteIndex) => (
-                                      <span 
-                                        key={voteIndex}
-                                        className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full"
-                                      >
-                                        {vote.voterName}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    // Show compact version with tooltip if more than 2
-                                    <>
-                                      <span 
-                                        className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full cursor-help"
-                                        data-tooltip-id={`votes-tooltip-${player.id}`}
-                                        data-tooltip-content={`Voters: ${playerVotes.map(vote => vote.voterName).join(', ')}`}
-                                      >
-                                        +{playerVotes.length}
-                                      </span>
-                                      <Tooltip 
-                                        id={`votes-tooltip-${player.id}`}
-                                        style={{ maxWidth: '200px', whiteSpace: 'normal' }}
-                                      />
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {/* Vote button - now shown for all players, but disabled for current player */}
-                              {!roundComplete && (
-                                <motion.button
-                                  whileHover={{ scale: isCurrentPlayer ? 1 : 1.05 }}
-                                  whileTap={{ scale: isCurrentPlayer ? 1 : 0.95 }}
-                                  onClick={() => handleVote(player.id)}
-                                  disabled={isCurrentPlayer || votedPlayerId !== null || isSubmitting}
-                                  className={`px-6 py-2 rounded-full font-medium ${
-                                    isCurrentPlayer || votedPlayerId !== null || isSubmitting
-                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                      : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
-                                  }`}
-                                >
-                                  {votedPlayerId === player.id ? "Voted" : "Vote"}
-                                </motion.button>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+      </div>
+      
+      {/* Main Content Area */}
+      {isMobile ? (
+        // Mobile View with Swipe
+        <div className="flex-1 relative overflow-hidden" ref={constraintsRef}>
+          <motion.div
+            className="absolute inset-0"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragStart={handleDragStart}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            style={{ touchAction: "pan-y" }}
+          >
+            {/* Panel Container */}
+            <div className="w-full h-full relative">
+              {/* Voting Panel */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-full flex items-start justify-center"
+                initial={false}
+                animate={{
+                  x: isDragging 
+                    ? calculatePanelPosition(0)
+                    : (activePanelIndex === 0 ? 0 : -window.innerWidth),
+                  opacity: activePanelIndex === 0 || isDragging ? 1 : 0.8,
+                  scale: activePanelIndex === 0 || isDragging ? 1 : 0.95,
+                }}
+                transition={{
+                  x: { 
+                    type: "spring", 
+                    stiffness: 280, 
+                    damping: 26,
+                    duration: 0.7 
+                  },
+                  opacity: { duration: 0.4 },
+                  scale: { duration: 0.4 }
+                }}
+                style={{ zIndex: activePanelIndex === 0 ? 10 : 5 }}
+              >
+                {/* Voting Panel Content */}
+                <div className="w-full h-full md:h-full flex flex-col p-4 overflow-y-auto">
+                  <VotingPanel
+                    roomData={roomData}
+                    playerData={playerData}
+                    votes={votes}
+                    votedPlayerId={votedPlayerId}
+                    isSubmitting={isSubmitting}
+                    error={error}
+                    remainingTime={remainingTime}
+                    roundComplete={roundComplete}
+                    eliminatedPlayer={eliminatedPlayer}
+                    onVote={handleVote}
+                  />
                 </div>
-              ) : (
-                <div className="text-center text-gray-500 py-12">
-                  Loading players...
+              </motion.div>
+
+              {/* Answers Panel */}
+              <motion.div
+                className="absolute top-0 left-0 w-full h-full flex items-start justify-center"
+                initial={false}
+                animate={{
+                  x: isDragging 
+                    ? calculatePanelPosition(1)
+                    : (activePanelIndex === 1 ? 0 : window.innerWidth),
+                  opacity: activePanelIndex === 1 || isDragging ? 1 : 0.8,
+                  scale: activePanelIndex === 1 || isDragging ? 1 : 0.95,
+                }}
+                transition={{
+                  x: { 
+                    type: "spring", 
+                    stiffness: 280, 
+                    damping: 26,
+                    duration: 0.7 
+                  },
+                  opacity: { duration: 0.4 },
+                  scale: { duration: 0.4 }
+                }}
+                style={{ zIndex: activePanelIndex === 1 ? 10 : 5 }}
+              >
+                {/* Answers Panel Content */}
+                <div className="w-full h-full p-4">
+                  <AnswersPanel
+                    questions={questions}
+                    currentQuestionIndex={currentQuestionIndex}
+                    playerData={playerData}
+                    onPrevQuestion={handlePrevQuestion}
+                    onNextQuestion={handleNextQuestion}
+                    className="h-full"
+                  />
                 </div>
-              )}
+              </motion.div>
             </div>
-            
-            {/* Round results */}
-            {roundComplete && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Round Results
-                </h3>
-                {eliminatedPlayer != 0 ? (
-                  <div className="bg-red-50 p-4 rounded-lg">
-                    <p className="text-red-700">
-                      The player eliminated this round:
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span key={eliminatedPlayer} className="bg-red-200 text-red-800 px-3 py-1 rounded-full">
-                        {roomData.players?.find(p => p.id === eliminatedPlayer)?.fakeName || 'Unknown'}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-700">No players were eliminated this round.</p>
-                )}
-                
-                {/* Next round info */}
-                {remainingTime === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-4 text-center"
-                  >
-                    <p className="text-gray-700 mb-2">
-                      {remainingTime === 0 ? "Preparing for next round..." : `Next round in ${remainingTime} seconds...`}
-                    </p>
-                    <div className="bg-gray-200 rounded-full h-2 w-full overflow-hidden">
-                      <motion.div
-                        className="bg-yellow-400 h-2"
-                        initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
-                        transition={{ duration: 5 }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            )}
+          </motion.div>
+
+          {/* Panel Indicators */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-20">
+            <div 
+              className={`h-2 w-8 rounded-full ${activePanelIndex === 0 ? 'bg-yellow-400' : 'bg-gray-300'}`}
+              onClick={() => setActivePanelIndex(0)}
+            />
+            <div 
+              className={`h-2 w-8 rounded-full ${activePanelIndex === 1 ? 'bg-yellow-400' : 'bg-gray-300'}`}
+              onClick={() => setActivePanelIndex(1)}
+            />
           </div>
         </div>
-      </div>
+      ) : (
+        // Desktop View (Original Layout)
+        <div className="flex flex-col-reverse md:flex-row w-full max-w-6xl mx-auto gap-4 flex-1 overflow-hidden min-h-0">
+          {/* Left Panel (AnswersPanel) */}
+          <div className="w-full md:w-2/5 flex-shrink-0 h-1/2 md:h-full min-h-0">
+            <AnswersPanel
+              questions={questions}
+              currentQuestionIndex={currentQuestionIndex}
+              playerData={playerData}
+              onPrevQuestion={handlePrevQuestion}
+              onNextQuestion={handleNextQuestion}
+              className="h-full"
+            />
+          </div>
+          
+          {/* Right Panel - Voting area */}
+          <div className="w-full md:w-3/5 h-1/2 md:h-full min-h-0">
+            <VotingPanel
+              roomData={roomData}
+              playerData={playerData}
+              votes={votes}
+              votedPlayerId={votedPlayerId}
+              isSubmitting={isSubmitting}
+              error={error}
+              remainingTime={remainingTime}
+              roundComplete={roundComplete}
+              eliminatedPlayer={eliminatedPlayer}
+              onVote={handleVote}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
