@@ -41,7 +41,7 @@ export function QuestionAnswerPanel({
 
       {/* Answer Area */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-        {currentQuestion ? (
+        {currentQuestion && !allQuestionsAnsweredOrSubmitted ? (
           <div className="w-full max-w-md">
             {!hasAnsweredCurrentQuestion ? (
               <div className="flex flex-col items-center mx-auto w-full">

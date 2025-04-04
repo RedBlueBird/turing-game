@@ -50,7 +50,7 @@ export default function VotingInterface({
   const [votedPlayerId, setVotedPlayerId] = useState<number | null>(null);
   const [votes, setVotes] = useState<VoteData[]>([]);
   const [roundComplete, setRoundComplete] = useState(false);
-  const [eliminatedPlayer, setEliminatedPlayer] = useState<number>(0);
+  const [eliminatedPlayer, setEliminatedPlayer] = useState<number | null>(null);
   
   // Mobile swipe mechanics
   const [isMobile, setIsMobile] = useState(false);
@@ -101,9 +101,12 @@ export default function VotingInterface({
           // Check if round is complete
           setRoundComplete(votesData.roundComplete || false);
           
-          // Set eliminated players
-          if (votesData.eliminatedPlayer) {
+          // Set eliminated player - only if round is complete and there is an eliminated player
+          if (votesData.roundComplete && votesData.eliminatedPlayer) {
             setEliminatedPlayer(votesData.eliminatedPlayer);
+          } else if (!votesData.roundComplete) {
+            // Reset eliminated player when new round starts
+            setEliminatedPlayer(null);
           }
         }
         

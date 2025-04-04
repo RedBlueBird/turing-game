@@ -18,7 +18,7 @@ interface VotingPanelProps {
   error: string;
   remainingTime: number;
   roundComplete: boolean;
-  eliminatedPlayer: number;
+  eliminatedPlayer: number | null;
   onVote: (playerId: number) => void;
   className?: string;
 }
@@ -137,7 +137,7 @@ export function VotingPanel({
           <h3 className="text-xl font-bold text-gray-800 mb-2">
             Round Results
           </h3>
-          {eliminatedPlayer != 0 ? (
+          {eliminatedPlayer !== null ? (
             <div className="bg-red-50 p-4 rounded-lg">
               <p className="text-red-700">
                 The player eliminated this round:
@@ -149,7 +149,7 @@ export function VotingPanel({
               </div>
             </div>
           ) : (
-            <p className="text-gray-700">No players were eliminated this round.</p>
+            <p className="text-gray-700">Waiting for voting results...</p>
           )}
           
           {/* Next round info */}
