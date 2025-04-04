@@ -210,7 +210,8 @@ export default function CreateRoom() {
               </select>
             </div>
 
-            <div className="mb-3">
+            {/* Keep Theme for future use */}
+            {/* <div className="mb-3">
               <label htmlFor="theme" className="block text-gray-700 text-lg font-medium mb-1">Theme</label>
               <select
                 id="theme"
@@ -225,7 +226,7 @@ export default function CreateRoom() {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
 
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">

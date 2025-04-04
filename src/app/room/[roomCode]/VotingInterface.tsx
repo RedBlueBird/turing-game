@@ -270,6 +270,7 @@ export default function VotingInterface({
           title="Voting Time"
           round={roomData.roomRound}
           remainingTime={remainingTime}
+          isMobile={isMobile}
         />
       </div>
       

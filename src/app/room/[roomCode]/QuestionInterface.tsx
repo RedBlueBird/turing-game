@@ -242,6 +242,7 @@ export default function QuestionInterface({
           title="Turing Game"
           round={roomData.roomRound}
           remainingTime={remainingTime}
+          isMobile={isMobile}
         />
       </div>
 

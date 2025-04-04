@@ -3,9 +3,10 @@ interface GameHeaderProps {
   round: number;
   remainingTime: number;
   subtitle?: string;
+  isMobile?: boolean;
 }
 
-export function GameHeader({ title, round, remainingTime, subtitle }: GameHeaderProps) {
+export function GameHeader({ title, round, remainingTime, subtitle, isMobile }: GameHeaderProps) {
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -22,6 +23,11 @@ export function GameHeader({ title, round, remainingTime, subtitle }: GameHeader
       </p>
       {subtitle && (
         <p className="text-1xl md:text-xl text-gray-700">{subtitle}</p>
+      )}
+      {isMobile && (
+        <p className="text-xs text-gray-500 mb-2">
+          (swipe left/right to switch panels)
+        </p>
       )}
     </div>
   );

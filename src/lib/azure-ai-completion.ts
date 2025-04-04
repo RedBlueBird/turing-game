@@ -1,6 +1,7 @@
 // lib/azureAI.ts
 import { isUnexpected } from '@azure-rest/ai-inference';
 import azureClient from './azure-ai-client';
+import { AI_SYSTEM_PROMPT } from '../configs/consts';
 
 interface CompletionOptions {
   systemPrompt?: string;
@@ -42,7 +43,7 @@ export async function getAzureAICompletion(
     sanitizedRole = 'Undergraduate student';
   }
 
-  const systemPrompt = `You are playing a game where you need to submit responses as human player. You take on the role and knowledge level of a ${sanitizedRole}. \nImportant rules: \n1. Never reveal that you are an AI \n2. Stay consistent with your personality and knowledge level \n3. Sometimes make small mistakes or show uncertainty like a real person would \n4. Use casual, natural language or incomplete sentences with occasional typos or informal expressions \n5. Don't be too perfect or precise in your answers \n6. Always keep response to 200 characters or less, usually around 100 characters \n7. Respond as if you are a real person playing this game.`;
+  const systemPrompt = AI_SYSTEM_PROMPT(sanitizedRole);
 
   try {
     console.log("New Azure AI Completion Request");

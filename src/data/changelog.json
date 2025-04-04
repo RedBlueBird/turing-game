@@ -2,11 +2,11 @@
   {
     "version": "0.2.0",
     "date": "April 2, 2025",
-    "changes": "### Features \n- Added \"Mimic Role\" in the game settings. Now you decide which role the AI will pretend as.\n- Added mobile exclusive card-swiping style UI to the game page. Now you can enjoy Turing Game on your phone! \n### UI Improvements \n- Added markdown syntax to this \"Recent Changes\" popup.\n- Fixed text color in some places default to white on iOS devices.\n- Better tooltip on mobile devices.\n- Feedback button now isn't blocked by keyboard popup."
+    "changes": "### Features \n- Added \"Mimic Role\" in the game settings. Now you decide which role the AI will pretend as.\n- Added mobile exclusive card-swiping UI to the game page. Now you can enjoy Turing Game on your phone! \n### UI Improvements \n- Added markdown syntax to this \"Recent Changes\" popup.\n- Fixed text color in some places default to white on iOS devices.\n- Better tooltip on mobile devices.\n- Feedback button now isn't blocked by keyboard popup."
   },
   {
     "version": "0.1.0",
     "date": "March 28, 2025",
-    "changes": "### Initial Release\n- Core game functionality\n- Room creation and joining\n- Question generation system\n- Voting mechanism\n- Results display\n- Feedback system"
+    "changes": "### Initial Release\n- Core game functionality\n- Room creation and joining\n- Question Answer system\n- Voting mechanism\n- Results display\n- Feedback system"
   }
 ]
