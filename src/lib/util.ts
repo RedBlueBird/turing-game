@@ -1,4 +1,17 @@
 import { ROOM_CODE } from "@/configs/consts";
+import seedrandom from 'seedrandom';
+
+/**
+ * Generates a deterministic random number between min and max (inclusive) using a seed.
+ * @param seed The seed string to initialize the random number generator
+ * @param min The minimum value (inclusive)
+ * @param max The maximum value (inclusive)
+ * @returns A random number between min and max
+ */
+export function getSeededRandom(seed: string, min: number, max: number): number {
+  const rng = seedrandom(seed);
+  return Math.floor(rng() * (max - min + 1)) + min;
+}
 
 /**
  * Shuffles an array using the Fisher-Yates algorithm.

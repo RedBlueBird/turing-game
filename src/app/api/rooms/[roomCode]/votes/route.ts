@@ -1,7 +1,7 @@
 // app/api/rooms/[roomCode]/votes/route.ts
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { isValidRoomCode } from '@/lib/util';
+import { isValidRoomCode, getSeededRandom } from '@/lib/util';
 
 // GET endpoint to fetch votes for a round
 export async function GET(
@@ -29,19 +29,28 @@ export async function GET(
 
     const room = roomRows[0];
 
+    // Calculate time remaining in the round
+    const currentTime = new Date().getTime();
+    const voteStartTime = new Date(room.round_start_time).getTime() + room.time_per_round*1000;
+    const roundEndTime = new Date(room.round_start_time).getTime() + (room.time_per_round + room.time_per_vote)*1000;
+    const timeRemainingMs = roundEndTime - currentTime;
+    const timeElapsedMs = currentTime - voteStartTime;
+    const roundComplete = timeRemainingMs < 0;
+    const aiVotingComplete = timeElapsedMs > getSeededRandom(room.id.toString(), 5, 10)*1000;
+
     // Fetch votes using the players table (voter and voted player)
     const [voteRows]: any = await pool.query(
       `SELECT p1.id as voterId, p1.fake_name as voterName, 
-              p1.voted_player_id as votedPlayerId, p2.fake_name as votedPlayerName
+              p1.voted_player_id as votedPlayerId, p2.fake_name as votedPlayerName,
+              p1.is_ai as isAI
        FROM players p1
        JOIN players p2 ON p1.voted_player_id = p2.id
-       WHERE p1.room_id = ? AND p1.voted_player_id > 0`,
-      [room.id]
+       WHERE p1.room_id = ? AND p1.voted_player_id > 0
+       AND (p1.is_ai = 0 OR (
+         p1.is_ai = 1 AND ?
+       ))`,
+      [room.id, aiVotingComplete]
     );
-
-    // Check if time for voting is over
-    const currentTime = new Date().getTime();
-    const roundComplete = ((new Date(room.round_start_time).getTime() + (room.time_per_round + room.time_per_vote)*1000 - currentTime) < 0) ? true : false;
 
     // If round is complete, determine players with highest votes
     let votedPlayers = [];
